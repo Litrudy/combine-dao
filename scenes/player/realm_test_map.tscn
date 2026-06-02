@@ -1,0 +1,76 @@
+[gd_scene format=3 uid="uid://dntw8owtqee8b"]
+
+[ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
+size = Vector2(32, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_k77xa"]
+resource_local_to_scene = true
+size = Vector2(800, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ghoxv"]
+resource_local_to_scene = true
+size = Vector2(800, 32)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_fxnhg"]
+resource_local_to_scene = true
+size = Vector2(32, 600)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_y2vg1"]
+resource_local_to_scene = true
+size = Vector2(32, 600)
+
+[node name="RealmTestMap" type="Node2D" unique_id=1610993027]
+
+[node name="Cultivator" parent="." unique_id=655860919 instance=ExtResource("1_c7xc1")]
+motion_mode = 1
+
+[node name="Camera2D" type="Camera2D" parent="Cultivator" unique_id=1470257711]
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Cultivator" unique_id=1866404615]
+shape = SubResource("RectangleShape2D_c7xc1")
+
+[node name="Visual2" type="Polygon2D" parent="Cultivator" unique_id=1021732152]
+color = Color(0.3764706, 1, 1, 1)
+polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+
+[node name="WallTop" type="StaticBody2D" parent="." unique_id=912591589]
+position = Vector2(0, -300)
+
+[node name="CollisionShape2Dw" type="CollisionShape2D" parent="WallTop" unique_id=605242943]
+shape = SubResource("RectangleShape2D_k77xa")
+
+[node name="Visual" type="Polygon2D" parent="WallTop" unique_id=1616969950]
+color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
+polygon = PackedVector2Array(-400, -16, 400, -16, 400, 16, -400, 16)
+
+[node name="WallBottom" type="StaticBody2D" parent="." unique_id=2088937197]
+position = Vector2(0, 300)
+
+[node name="CollisionShape2Ds" type="CollisionShape2D" parent="WallBottom" unique_id=651315227]
+shape = SubResource("RectangleShape2D_ghoxv")
+
+[node name="Visual" type="Polygon2D" parent="WallBottom" unique_id=543346927]
+color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
+polygon = PackedVector2Array(-400, -16, 400, -16, 400, 16, -400, 16)
+
+[node name="WallLeft" type="StaticBody2D" parent="." unique_id=1798731096]
+position = Vector2(-400, 0)
+
+[node name="CollisionShape2Da" type="CollisionShape2D" parent="WallLeft" unique_id=1796312339]
+shape = SubResource("RectangleShape2D_fxnhg")
+
+[node name="Visual" type="Polygon2D" parent="WallLeft" unique_id=856110066]
+color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
+polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
+
+[node name="WallRight" type="StaticBody2D" parent="." unique_id=1677129649]
+position = Vector2(400, 0)
+
+[node name="CollisionShape2Dd" type="CollisionShape2D" parent="WallRight" unique_id=202965698]
+shape = SubResource("RectangleShape2D_y2vg1")
+
+[node name="Visual" type="Polygon2D" parent="WallRight" unique_id=676694082]
+color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
+polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
