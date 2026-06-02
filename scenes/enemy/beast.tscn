@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://no6vpd7vpph5"]
+
+[ext_resource type="Script" uid="uid://bv34p5uvt6tws" path="res://scenes/enemy/beast.gd" id="1_s6uuk"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5m1xp"]
+size = Vector2(28, 28)
+
+[node name="Beast" type="CharacterBody2D" unique_id=748534951]
+script = ExtResource("1_s6uuk")
+
+[node name="Visual" type="Polygon2D" parent="." unique_id=1926268240]
+color = Color(1, 0.0627451, 0.050980393, 1)
+polygon = PackedVector2Array(-14, -14, 14, -14, 14, 14, -14, 14)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1742787428]
+shape = SubResource("RectangleShape2D_5m1xp")

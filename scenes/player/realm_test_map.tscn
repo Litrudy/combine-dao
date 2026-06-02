@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dntw8owtqee8b"]
 
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
+[ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -74,3 +75,7 @@ shape = SubResource("RectangleShape2D_y2vg1")
 [node name="Visual" type="Polygon2D" parent="WallRight" unique_id=676694082]
 color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
 polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
+
+[node name="Beast" parent="WallRight" unique_id=748534951 instance=ExtResource("2_y2vg1")]
+position = Vector2(-200, 0)
+motion_mode = 1

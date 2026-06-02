@@ -6,7 +6,7 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_47jo8"]
 size = Vector2(32, 32)
 
-[node name="Cultivator" type="CharacterBody2D" unique_id=655860919]
+[node name="Cultivator" type="CharacterBody2D" unique_id=655860919 groups=["player"]]
 script = ExtResource("1_47jo8")
 
 [node name="Visual" type="Polygon2D" parent="." unique_id=2016236952]
