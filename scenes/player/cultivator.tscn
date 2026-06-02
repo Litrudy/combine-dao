@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bxsygin1jwpxk"]
 
 [ext_resource type="Script" uid="uid://bu8mc7savfjtc" path="res://scenes/player/cultivator.gd" id="1_47jo8"]
+[ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_pc6hu"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_47jo8"]
 size = Vector2(32, 32)
@@ -14,3 +15,6 @@ polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=182583332]
 shape = SubResource("RectangleShape2D_47jo8")
+
+[node name="Vitals" type="Node" parent="." unique_id=158629324]
+script = ExtResource("2_pc6hu")
