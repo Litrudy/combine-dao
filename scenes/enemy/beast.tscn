@@ -18,3 +18,4 @@ shape = SubResource("RectangleShape2D_5m1xp")
 
 [node name="Vitals" type="Node" parent="." unique_id=158629325]
 script = ExtResource("2_vitals")
+max_qi_blood = 30

@@ -2,6 +2,7 @@
 
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
 [ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
+[ext_resource type="PackedScene" uid="uid://brxx56mq7grp5" path="res://scenes/ui/boon_choice_panel.tscn" id="3_boonui"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -76,12 +77,14 @@ shape = SubResource("RectangleShape2D_y2vg1")
 color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
 polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
 
-[node name="Beast" parent="WallRight" unique_id=748534951 instance=ExtResource("2_y2vg1")]
-position = Vector2(-200, 0)
-motion_mode = 1
-
 [node name="Beast" parent="." unique_id=1619129642 instance=ExtResource("2_y2vg1")]
 position = Vector2(178, -238)
 
 [node name="Beast2" parent="." unique_id=1007548353 instance=ExtResource("2_y2vg1")]
 position = Vector2(311, 209)
+
+[node name="Beast3" parent="." unique_id=748534951 instance=ExtResource("2_y2vg1")]
+position = Vector2(200, 0)
+motion_mode = 1
+
+[node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
