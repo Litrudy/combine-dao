@@ -14,6 +14,8 @@ extends CharacterBody2D
 const SwordQiScene: PackedScene = preload("res://scenes/player/sword_qi.tscn")
 ## 灵狼场景，召唤时实例化
 const SPIRIT_WOLF_SCENE: PackedScene = preload("res://scenes/ally/spirit_wolf.tscn")
+## 毒雾场景，释放时实例化
+const POISON_MIST_SCENE: PackedScene = preload("res://scenes/player/poison_mist.tscn")
 
 var qi_blood: int
 var mana: int
@@ -41,8 +43,23 @@ var beast_guard_enabled: bool = false
 ## 御兽流：灵兽护主减伤比例（40%）
 var beast_guard_ratio: float = 0.4
 
+## 毒蛊流：是否解锁毒雾（Q 释放）
+var poison_mist_unlocked: bool = false
+## 毒蛊流：是否启用叠毒
+var poison_stack_enabled: bool = false
+## 毒蛊流：是否启用毒爆
+var poison_explosion_enabled: bool = false
+## 毒蛊流：毒伤加成
+var poison_damage_bonus: int = 0
+## 毒蛊流：叠毒最大层数
+var poison_max_stack: int = 1
+## 毒雾释放冷却（秒）
+@export var poison_cast_cooldown: float = 3.0
+
 ## 攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
+## 毒雾释放冷却剩余时间，<=0 时可再次释放
+var _poison_cast_timer: float = 0.0
 ## 是否正在选择机缘（期间禁止移动与攻击）
 var _choosing_boon: bool = false
 
@@ -74,6 +91,9 @@ func _physics_process(delta: float) -> void:
 	# 攻击冷却递减
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
+	# 毒雾冷却递减
+	if _poison_cast_timer > 0.0:
+		_poison_cast_timer -= delta
 
 	# 选择机缘期间禁止移动
 	if _choosing_boon:
@@ -97,6 +117,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 鼠标左键（attack_primary）释放剑气
 	if event.is_action_pressed("attack_primary"):
 		_release_sword_qi()
+		return
+
+	# Q 键：在鼠标位置释放毒雾
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Q:
+		cast_poison_mist()
 		return
 
 	# ===== 临时调试输入：K 受伤 10 点，H 回血 10 点 =====
@@ -222,9 +247,24 @@ func apply_boon(boon: Dictionary) -> void:
 			# 灵兽护主：开启减伤
 			beast_guard_enabled = true
 			print("已获得机缘：灵兽护主，灵兽为玩家分担 40% 伤害")
+		# ===== 毒蛊流 =====
+		"poison_mist":
+			# 毒雾：解锁 Q 键释放毒雾
+			poison_mist_unlocked = true
+			poison_damage_bonus += 0
+			print("已获得机缘：毒雾，按 Q 可在鼠标位置释放毒雾")
+		"poison_stack":
+			# 叠毒：开启叠毒，最多 5 层
+			poison_stack_enabled = true
+			poison_max_stack = 5
+			print("已获得机缘：叠毒，毒伤最多叠加 5 层")
+		"poison_explosion":
+			# 毒爆：中毒目标死亡时扩散毒伤
+			poison_explosion_enabled = true
+			print("已获得机缘：毒爆，中毒目标死亡时扩散毒伤")
 		_:
-			# 毒蛊流留待后续里程碑实现
-			print("已获得机缘：", boon.get("boon_name", "?"), "（效果将在后续里程碑实现）")
+			# 未知机缘，兜底提示
+			print("已获得机缘：", boon.get("boon_name", "?"), "（效果未实现）")
 
 
 # ===== 御兽流 =====
@@ -270,6 +310,31 @@ func receive_damage(amount: int) -> void:
 		final_damage = amount - reduced
 		print("灵兽护主，减免伤害：", reduced)
 	vitals.take_damage(final_damage)
+
+
+# ===== 毒蛊流 =====
+
+## 在鼠标位置释放毒雾（Q 键），受冷却限制
+func cast_poison_mist() -> void:
+	# 未解锁毒雾则不释放
+	if not poison_mist_unlocked:
+		return
+	# 冷却未结束则不释放
+	if _poison_cast_timer > 0.0:
+		return
+
+	# 实例化毒雾并放到鼠标世界坐标
+	var mist := POISON_MIST_SCENE.instantiate()
+	get_parent().add_child(mist)
+	mist.global_position = get_global_mouse_position()
+	# 传入当前毒蛊参数
+	mist.damage_per_second = 3 + poison_damage_bonus
+	mist.poison_stack_enabled = poison_stack_enabled
+	mist.max_poison_stack = poison_max_stack
+	mist.poison_explosion_enabled = poison_explosion_enabled
+
+	# 重置冷却
+	_poison_cast_timer = poison_cast_cooldown
 
 
 # ===== 气血组件信号回调 =====

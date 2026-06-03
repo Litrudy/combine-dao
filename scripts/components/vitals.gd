@@ -58,3 +58,18 @@ func _die() -> void:
 		return
 	_is_dead = true
 	died.emit()
+
+
+## 是否已死亡（供毒爆等外部逻辑判断死亡状态）
+func is_dead() -> bool:
+	return _is_dead
+
+
+## 获取当前气血
+func get_current_qi_blood() -> int:
+	return current_qi_blood
+
+
+## 获取气血上限
+func get_max_qi_blood() -> int:
+	return max_qi_blood
