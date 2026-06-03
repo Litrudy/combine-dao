@@ -17,10 +17,15 @@ var _player: Node2D
 ## 当前攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
 
+## 自身气血组件（子节点 Vitals）
+@onready var vitals: Vitals = $Vitals
+
 
 func _ready() -> void:
 	# 漂浮模式，适合俯视角无重力移动
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	# 气血归零时妖兽消失
+	vitals.died.connect(_on_died)
 	# 寻找 "player" 组中的玩家节点
 	_acquire_player()
 
@@ -64,9 +69,19 @@ func _try_attack() -> void:
 		return
 
 	# 获取玩家的 Vitals 子节点并造成伤害
-	var vitals: Vitals = _player.get_node_or_null("Vitals") as Vitals
-	if vitals != null:
-		vitals.take_damage(attack_damage)
+	var player_vitals: Vitals = _player.get_node_or_null("Vitals") as Vitals
+	if player_vitals != null:
+		player_vitals.take_damage(attack_damage)
 
 	# 重置冷却
 	_attack_timer = attack_cooldown
+
+
+## 妖兽受到攻击（由剑气等外部来源调用）
+func take_damage(amount: int) -> void:
+	vitals.take_damage(amount)
+
+
+## 气血归零回调：妖兽消失
+func _on_died() -> void:
+	queue_free()

@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://no6vpd7vpph5"]
 
 [ext_resource type="Script" uid="uid://bv34p5uvt6tws" path="res://scenes/enemy/beast.gd" id="1_s6uuk"]
+[ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5m1xp"]
 size = Vector2(28, 28)
 
-[node name="Beast" type="CharacterBody2D" unique_id=748534951]
+[node name="Beast" type="CharacterBody2D" unique_id=748534951 groups=["enemy"]]
 script = ExtResource("1_s6uuk")
 
 [node name="Visual" type="Polygon2D" parent="." unique_id=1926268240]
@@ -14,3 +15,6 @@ polygon = PackedVector2Array(-14, -14, 14, -14, 14, 14, -14, 14)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1742787428]
 shape = SubResource("RectangleShape2D_5m1xp")
+
+[node name="Vitals" type="Node" parent="." unique_id=158629325]
+script = ExtResource("2_vitals")

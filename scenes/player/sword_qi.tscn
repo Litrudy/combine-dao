@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://c0swordqi0001"]
+
+[ext_resource type="Script" path="res://scenes/player/sword_qi.gd" id="1_swordqi"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_swordqi"]
+size = Vector2(20, 6)
+
+[node name="SwordQi" type="Area2D"]
+script = ExtResource("1_swordqi")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.6, 0.95, 1, 1)
+polygon = PackedVector2Array(-10, -3, 10, -3, 10, 3, -10, 3)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_swordqi")
