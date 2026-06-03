@@ -39,6 +39,10 @@ text = "修为：- / -"
 layout_mode = 2
 text = "继续修炼"
 
+[node name="StoneLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "天道石：0"
+
 [node name="SchoolLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "剑气：0

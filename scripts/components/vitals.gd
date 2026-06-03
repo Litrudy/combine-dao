@@ -73,3 +73,12 @@ func get_current_qi_blood() -> int:
 ## 获取气血上限
 func get_max_qi_blood() -> int:
 	return max_qi_blood
+
+
+## 设置气血上限；refill 为 true 时同步补满当前气血到新上限
+func set_max_qi_blood(value: int, refill: bool = true) -> void:
+	max_qi_blood = max(1, value)
+	if refill:
+		current_qi_blood = max_qi_blood
+	else:
+		current_qi_blood = min(current_qi_blood, max_qi_blood)

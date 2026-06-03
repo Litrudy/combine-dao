@@ -11,6 +11,8 @@ const BEAST_SCENE: PackedScene = preload("res://scenes/enemy/beast.tscn")
 var boss_spawned: bool = false
 ## 本局是否已通关（避免重复触发）
 var run_completed: bool = false
+## 精英怪出现概率
+const ELITE_CHANCE: float = 0.2
 
 ## 通关提示面板
 @onready var _clear_panel: CanvasLayer = $ClearPanel
@@ -19,9 +21,20 @@ var run_completed: bool = false
 func _ready() -> void:
 	# 通关提示默认隐藏
 	_clear_panel.visible = false
-	# 给当前所有普通小怪连接离场信号，用于检测全部死亡
-	for enemy in get_tree().get_nodes_in_group("normal_enemy"):
+	# 收集开局普通小怪，连接离场信号并随机指定精英怪
+	var normal_enemies: Array = get_tree().get_nodes_in_group("normal_enemy")
+	var elite_count: int = 0
+	for enemy in normal_enemies:
 		enemy.tree_exited.connect(_on_normal_enemy_exited)
+		# 20% 概率成为精英怪
+		if enemy.has_method("make_elite") and randf() < ELITE_CHANCE:
+			enemy.make_elite()
+			elite_count += 1
+	# 小怪数量较少时确保至少有 1 只精英怪用于测试
+	if elite_count == 0 and normal_enemies.size() > 0:
+		var pick = normal_enemies[randi() % normal_enemies.size()]
+		if pick.has_method("make_elite"):
+			pick.make_elite()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -64,9 +77,12 @@ func spawn_boss_encounter() -> void:
 	print("小怪已清空，守墟妖王降临")
 
 
-## 生成一个护卫小怪
+## 生成一个护卫小怪（20% 概率为精英怪）
 func _spawn_guard(pos: Vector2) -> void:
 	var beast := BEAST_SCENE.instantiate()
+	# 入场景前设置 is_elite，确保 _ready 时应用精英强化
+	if randf() < ELITE_CHANCE:
+		beast.is_elite = true
 	add_child(beast)
 	beast.position = pos
 

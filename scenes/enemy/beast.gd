@@ -13,6 +13,14 @@ extends CharacterBody2D
 @export var attack_cooldown: float = 1.0
 ## 死亡时给予玩家的修为奖励
 @export var cultivation_reward: int = 1
+## 普通小怪掉落天道石的概率
+@export var heavenly_stone_drop_chance: float = 0.12
+## 普通小怪掉落天道石数量
+@export var heavenly_stone_drop_amount: int = 1
+## 是否为精英怪
+@export var is_elite: bool = false
+## 精英怪必掉天道石数量
+@export var elite_drop_amount: int = 2
 
 ## 目标玩家节点
 var _player: Node2D
@@ -20,6 +28,8 @@ var _player: Node2D
 var _attack_timer: float = 0.0
 ## 死亡奖励是否已发放，保证只发放一次
 var _reward_granted: bool = false
+## 精英强化是否已应用，避免重复叠加
+var _elite_applied: bool = false
 
 ## 自身气血组件（子节点 Vitals）
 @onready var vitals: Vitals = $Vitals
@@ -28,10 +38,33 @@ var _reward_granted: bool = false
 func _ready() -> void:
 	# 漂浮模式，适合俯视角无重力移动
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	# 精英怪强化
+	if is_elite:
+		_apply_elite_buff()
 	# 气血归零时妖兽消失
 	vitals.died.connect(_on_died)
 	# 寻找 "player" 组中的玩家节点
 	_acquire_player()
+
+
+## 标记为精英怪并立即应用强化（供地图在 _ready 之后调用）
+func make_elite() -> void:
+	is_elite = true
+	_apply_elite_buff()
+
+
+## 精英怪基础强化：气血翻倍、伤害 +50%、移速 +10%、视觉变金色（只应用一次）
+func _apply_elite_buff() -> void:
+	if _elite_applied:
+		return
+	_elite_applied = true
+	vitals.set_max_qi_blood(vitals.max_qi_blood * 2, true)
+	attack_damage = int(attack_damage * 1.5)
+	move_speed *= 1.1
+	var visual := get_node_or_null("Visual")
+	if visual != null:
+		visual.color = Color(1.0, 0.84, 0.0)
+	print("精英妖兽出现")
 
 
 func _physics_process(delta: float) -> void:
@@ -104,6 +137,17 @@ func _grant_reward() -> void:
 
 	# 找到 "player" 组中的玩家
 	var player: Node = get_tree().get_first_node_in_group("player")
-	# 玩家存在且具备 gain_cultivation_exp 方法时发放奖励
-	if player != null and player.has_method("gain_cultivation_exp"):
+	if player == null:
+		return
+	# 修为奖励
+	if player.has_method("gain_cultivation_exp"):
 		player.gain_cultivation_exp(cultivation_reward)
+
+	# 天道石掉落：精英必掉，普通按概率掉（直接加到玩家身上，不生成地面掉落物）
+	var stone_amount: int = 0
+	if is_elite:
+		stone_amount = elite_drop_amount
+	elif randf() < heavenly_stone_drop_chance:
+		stone_amount = heavenly_stone_drop_amount
+	if stone_amount > 0 and player.has_method("gain_heavenly_stones"):
+		player.gain_heavenly_stones(stone_amount)

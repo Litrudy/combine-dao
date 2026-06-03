@@ -355,6 +355,42 @@ func _attach_quality(boon: Dictionary) -> void:
 	boon["final_effect_value"] = _compute_final_value(boon.get("effect_value", 0), final_multiplier)
 
 
+## 根据当前品阶 id 返回下一个品阶；已是天品则返回天品本身
+func get_next_grade(current_grade_id: String) -> Dictionary:
+	var index: int = -1
+	for i in GRADES.size():
+		if GRADES[i]["id"] == current_grade_id:
+			index = i
+			break
+	# 未找到则返回最低品阶兜底
+	if index == -1:
+		return GRADES[0]
+	# 已是最高品阶（天品）则保持
+	if index >= GRADES.size() - 1:
+		return GRADES[index]
+	return GRADES[index + 1]
+
+
+## 根据当前 grade_multiplier 与 star_multiplier 重算最终倍率与最终数值
+func recalculate_boon_quality(boon: Dictionary) -> Dictionary:
+	var grade_multiplier: float = float(boon.get("grade_multiplier", 1.0))
+	var star_multiplier: float = float(boon.get("star_multiplier", 1.0))
+	var final_multiplier: float = grade_multiplier * star_multiplier
+	boon["final_multiplier"] = final_multiplier
+	boon["final_effect_value"] = _compute_final_value(boon.get("effect_value", 0), final_multiplier)
+	return boon
+
+
+## 将单个机缘的品阶提升一级并重算数值（星级不变）
+func upgrade_boon_grade(boon: Dictionary) -> Dictionary:
+	var next_grade: Dictionary = get_next_grade(boon.get("grade_id", "fan"))
+	boon["grade_id"] = next_grade["id"]
+	boon["grade_name"] = next_grade["name"]
+	boon["grade_color"] = next_grade["color"]
+	boon["grade_multiplier"] = next_grade["multiplier"]
+	return recalculate_boon_quality(boon)
+
+
 ## 计算最终数值：int 取整、float 保留两位小数、非数字原样返回
 func _compute_final_value(base_value, final_multiplier: float):
 	if base_value is int:

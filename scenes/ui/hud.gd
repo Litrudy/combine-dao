@@ -6,6 +6,7 @@ extends CanvasLayer
 @onready var _hp_label: Label = $Panel/VBoxContainer/HpLabel
 @onready var _cultivation_label: Label = $Panel/VBoxContainer/CultivationLabel
 @onready var _breakthrough_label: Label = $Panel/VBoxContainer/BreakthroughLabel
+@onready var _stone_label: Label = $Panel/VBoxContainer/StoneLabel
 @onready var _school_label: Label = $Panel/VBoxContainer/SchoolLabel
 @onready var _boon_list_label: Label = $Panel/VBoxContainer/BoonListLabel
 @onready var _spec_label: Label = $Panel/VBoxContainer/SpecLabel
@@ -50,6 +51,8 @@ func _refresh() -> void:
 	_cultivation_label.text = "修为：%d / %d" % [data["cultivation_exp"], data["cultivation_exp_required"]]
 	# 突破状态
 	_breakthrough_label.text = "按 R 突破" if data["can_breakthrough"] else "继续修炼"
+	# 天道石
+	_stone_label.text = "天道石：%d" % data["heavenly_stones"]
 	# 流派进度
 	var sc: Dictionary = data["school_counts"]
 	_school_label.text = "剑气：%d\n御兽：%d\n毒蛊：%d" % [sc["sword"], sc["beast"], sc["poison"]]

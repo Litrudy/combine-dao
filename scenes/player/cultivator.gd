@@ -34,6 +34,9 @@ var acquired_boon_ids: Array[String] = []
 ## 已获得机缘的完整记录（含品阶 / 星级 / 最终数值，供 HUD 显示）
 var acquired_boon_records: Array[Dictionary] = []
 
+## 天道石（局内构筑资源，用于刷新机缘与提升品阶）
+var heavenly_stones: int = 5
+
 ## 各流派已获得机缘数量
 var school_counts: Dictionary = {
 	"sword": 0,
@@ -306,6 +309,32 @@ func _make_boon_record(boon: Dictionary) -> Dictionary:
 		"star_text": boon.get("star_text", ""),
 		"final_effect_value": boon.get("final_effect_value", boon.get("effect_value", 0)),
 	}
+
+
+## 抽取一组机缘候选（供机缘面板刷新调用，沿用去重 + 前置 + 加权逻辑）
+func roll_boon_options(count: int = 3) -> Array:
+	return _boon_manager.roll_boons(acquired_boon_ids, school_counts, count)
+
+
+# ===== 天道石经济 =====
+
+## 获得天道石
+func gain_heavenly_stones(amount: int) -> void:
+	if amount <= 0:
+		return
+	heavenly_stones += amount
+	print("获得天道石：", amount, "，当前天道石：", heavenly_stones)
+	stats_changed.emit()
+
+
+## 消耗天道石：足够则扣除并返回 true，否则返回 false
+func spend_heavenly_stones(amount: int) -> bool:
+	if heavenly_stones < amount:
+		print("天道石不足")
+		return false
+	heavenly_stones -= amount
+	stats_changed.emit()
+	return true
 
 
 ## 选择机缘后完成突破：层数 +1，修为不清零，需求 +3
@@ -616,6 +645,7 @@ func get_hud_data() -> Dictionary:
 		"school_counts": school_counts,
 		"acquired_boon_names": acquired_boon_names,
 		"active_specialization_names": active_specialization_names,
+		"heavenly_stones": heavenly_stones,
 		# ----- 实时调试数值 -----
 		"attack_cooldown": attack_cooldown,
 		"sword_damage_bonus": sword_damage_bonus,

@@ -29,6 +29,11 @@ extends CharacterBody2D
 ## 距离阈值：大于此值优先冲撞，小于则优先震地
 @export var charge_range: float = 200.0
 
+## ===== 天道石掉落 =====
+## 击败 Boss 掉落天道石的最小 / 最大数量
+@export var boss_heavenly_stone_min: int = 8
+@export var boss_heavenly_stone_max: int = 12
+
 ## 冲撞命中判定半径
 const CHARGE_HIT_RADIUS: float = 45.0
 
@@ -173,7 +178,13 @@ func _damage_player(amount: int) -> void:
 			player_vitals.take_damage(amount)
 
 
-## 死亡回调：消失并提示
+## 死亡回调：掉落天道石、消失并提示
 func _on_died() -> void:
+	# 掉落 8-12 个天道石（直接加到玩家身上）
+	var player: Node = _player if is_instance_valid(_player) else get_tree().get_first_node_in_group("player")
+	if player != null and player.has_method("gain_heavenly_stones"):
+		var amount: int = randi_range(boss_heavenly_stone_min, boss_heavenly_stone_max)
+		player.gain_heavenly_stones(amount)
+		print("守墟妖王掉落天道石：", amount)
 	print("守墟妖王已被击败")
 	queue_free()
