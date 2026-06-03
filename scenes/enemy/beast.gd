@@ -11,11 +11,15 @@ extends CharacterBody2D
 @export var attack_damage: int = 5
 ## 攻击冷却时间（秒）
 @export var attack_cooldown: float = 1.0
+## 死亡时给予玩家的修为奖励
+@export var cultivation_reward: int = 1
 
 ## 目标玩家节点
 var _player: Node2D
 ## 当前攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
+## 死亡奖励是否已发放，保证只发放一次
+var _reward_granted: bool = false
 
 ## 自身气血组件（子节点 Vitals）
 @onready var vitals: Vitals = $Vitals
@@ -82,6 +86,20 @@ func take_damage(amount: int) -> void:
 	vitals.take_damage(amount)
 
 
-## 气血归零回调：妖兽消失
+## 气血归零回调：发放修为奖励并消失
 func _on_died() -> void:
+	_grant_reward()
 	queue_free()
+
+
+## 发放死亡修为奖励，保证只发放一次
+func _grant_reward() -> void:
+	if _reward_granted:
+		return
+	_reward_granted = true
+
+	# 找到 "player" 组中的玩家
+	var player: Node = get_tree().get_first_node_in_group("player")
+	# 玩家存在且具备 gain_cultivation_exp 方法时发放奖励
+	if player != null and player.has_method("gain_cultivation_exp"):
+		player.gain_cultivation_exp(cultivation_reward)

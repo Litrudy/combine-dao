@@ -16,6 +16,13 @@ const SwordQiScene: PackedScene = preload("res://scenes/player/sword_qi.tscn")
 var qi_blood: int
 var mana: int
 
+## 当前修为
+var cultivation_exp: int = 0
+## 突破所需修为
+var cultivation_exp_required: int = 3
+## 修炼层数
+var cultivation_level: int = 1
+
 ## 攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
 
@@ -85,6 +92,18 @@ func _release_sword_qi() -> void:
 
 	# 重置冷却
 	_attack_timer = attack_cooldown
+
+
+# ===== 修为 =====
+
+## 获得修为（由妖兽死亡等外部来源调用）
+func gain_cultivation_exp(amount: int) -> void:
+	cultivation_exp += amount
+	print("获得修为：", amount, "，当前修为：", cultivation_exp, " / ", cultivation_exp_required)
+
+	# 修为达到突破所需值，暂时只提示（突破面板留待 M1 任务 6）
+	if cultivation_exp >= cultivation_exp_required:
+		print("修为已满，可以突破")
 
 
 # ===== 气血组件信号回调 =====

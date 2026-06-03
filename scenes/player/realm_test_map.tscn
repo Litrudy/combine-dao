@@ -79,3 +79,9 @@ polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
 [node name="Beast" parent="WallRight" unique_id=748534951 instance=ExtResource("2_y2vg1")]
 position = Vector2(-200, 0)
 motion_mode = 1
+
+[node name="Beast" parent="." unique_id=1619129642 instance=ExtResource("2_y2vg1")]
+position = Vector2(178, -238)
+
+[node name="Beast2" parent="." unique_id=1007548353 instance=ExtResource("2_y2vg1")]
+position = Vector2(311, 209)
