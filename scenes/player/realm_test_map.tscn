@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
 [ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
 [ext_resource type="PackedScene" uid="uid://brxx56mq7grp5" path="res://scenes/ui/boon_choice_panel.tscn" id="3_boonui"]
+[ext_resource type="Script" path="res://scenes/player/realm_test_map.gd" id="5_map"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -24,6 +25,7 @@ resource_local_to_scene = true
 size = Vector2(32, 600)
 
 [node name="RealmTestMap" type="Node2D" unique_id=1610993027]
+script = ExtResource("5_map")
 
 [node name="Cultivator" parent="." unique_id=655860919 instance=ExtResource("1_c7xc1")]
 motion_mode = 1

@@ -6,7 +6,7 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5m1xp"]
 size = Vector2(28, 28)
 
-[node name="Beast" type="CharacterBody2D" unique_id=748534951 groups=["enemy"]]
+[node name="Beast" type="CharacterBody2D" unique_id=748534951 groups=["enemy", "normal_enemy"]]
 script = ExtResource("1_s6uuk")
 cultivation_reward = 3
 
