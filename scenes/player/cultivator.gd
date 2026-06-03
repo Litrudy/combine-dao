@@ -3,6 +3,9 @@ extends CharacterBody2D
 ## 修士（玩家）移动脚本
 ## M1 任务 1 —— 仅实现俯视角 WASD 移动，不含战斗 / 升级 / 机缘等系统。
 
+## 玩家状态变化时发出（修为 / 突破 / 机缘 / 气血变化），供 HUD 刷新
+signal stats_changed
+
 @export var speed: float = 200.0
 @export var max_qi_blood: int = 100
 @export var max_mana: int = 50
@@ -181,6 +184,9 @@ func gain_cultivation_exp(amount: int) -> void:
 	if can_breakthrough():
 		print("修为已满，按 R 进行突破")
 
+	# 通知 HUD 刷新
+	stats_changed.emit()
+
 
 ## 是否处于可突破状态
 func can_breakthrough() -> bool:
@@ -241,6 +247,9 @@ func complete_breakthrough_after_boon_selected() -> void:
 	cultivation_level += 1
 	cultivation_exp_required += 3
 	print("突破完成，当前修为：", cultivation_exp, " / ", cultivation_exp_required)
+
+	# 完成突破 + 获得机缘，通知 HUD 刷新
+	stats_changed.emit()
 
 
 ## 根据机缘 id 应用效果（M1 任务 7：实现剑气流三个机缘）
@@ -370,13 +379,53 @@ func cast_poison_mist() -> void:
 ## 受伤时打印剩余气血
 func _on_vitals_damaged(_amount: int, current_qi_blood: int) -> void:
 	print("受伤，当前气血：", current_qi_blood)
+	# 气血变化，通知 HUD 刷新
+	stats_changed.emit()
 
 
 ## 治疗时打印当前气血
 func _on_vitals_healed(_amount: int, current_qi_blood: int) -> void:
 	print("回复，当前气血：", current_qi_blood)
+	# 气血变化，通知 HUD 刷新
+	stats_changed.emit()
 
 
 ## 死亡时打印提示
 func _on_vitals_died() -> void:
 	print("修士陨落")
+
+
+# ===== HUD 数据 =====
+
+## 返回 HUD 需要的数据快照（HUD 只读，不修改玩家数据）
+func get_hud_data() -> Dictionary:
+	# 各流派已获得机缘数量（按 id 前缀分类）
+	var school_counts: Dictionary = {"sword": 0, "beast": 0, "poison": 0}
+	# 已获得机缘名称列表
+	var acquired_boon_names: Array[String] = []
+
+	# 用机缘数据建立 id -> 名称 映射
+	var id_to_name: Dictionary = {}
+	for boon in _boon_manager.get_all_boons():
+		id_to_name[boon.get("id", "")] = boon.get("boon_name", "?")
+
+	for id in acquired_boon_ids:
+		# 流派计数
+		if id.begins_with("sword"):
+			school_counts["sword"] += 1
+		elif id.begins_with("beast"):
+			school_counts["beast"] += 1
+		elif id.begins_with("poison"):
+			school_counts["poison"] += 1
+		# 名称列表
+		acquired_boon_names.append(id_to_name.get(id, id))
+
+	return {
+		"current_hp": vitals.get_current_qi_blood(),
+		"max_hp": vitals.get_max_qi_blood(),
+		"cultivation_exp": cultivation_exp,
+		"cultivation_exp_required": cultivation_exp_required,
+		"can_breakthrough": can_breakthrough(),
+		"school_counts": school_counts,
+		"acquired_boon_names": acquired_boon_names,
+	}

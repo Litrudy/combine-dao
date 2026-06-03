@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://cpaq8a8j5r7cd" path="res://scenes/ally/spirit_wolf.gd" id="1_wolf"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wolf"]
+size = Vector2(2, 2)
 
 [node name="SpiritWolf" type="CharacterBody2D" unique_id=377059038]
 script = ExtResource("1_wolf")

@@ -1,0 +1,51 @@
+[gd_scene format=3 uid="uid://c0hud00000001"]
+
+[ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 5
+script = ExtResource("1_hud")
+
+[node name="Panel" type="Panel" parent="."]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 340.0
+offset_bottom = 220.0
+mouse_filter = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 6
+
+[node name="HpLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "气血：- / -"
+
+[node name="CultivationLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "修为：- / -"
+
+[node name="BreakthroughLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "继续修炼"
+
+[node name="SchoolLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "剑气：0
+御兽：0
+毒蛊：0"
+
+[node name="BoonListLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "已获得机缘：暂无机缘"
+autowrap_mode = 2

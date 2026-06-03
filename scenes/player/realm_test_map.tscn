@@ -4,6 +4,7 @@
 [ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
 [ext_resource type="PackedScene" uid="uid://brxx56mq7grp5" path="res://scenes/ui/boon_choice_panel.tscn" id="3_boonui"]
 [ext_resource type="Script" uid="uid://cchcqvgciqawd" path="res://scenes/player/realm_test_map.gd" id="5_map"]
+[ext_resource type="PackedScene" uid="uid://c0hud00000001" path="res://scenes/ui/hud.tscn" id="6_hud"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -106,6 +107,8 @@ shape = SubResource("RectangleShape2D_y2vg1")
 [node name="Visual" type="Polygon2D" parent="WallRight" unique_id=676694082]
 color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
 polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
+
+[node name="HUD" parent="." instance=ExtResource("6_hud")]
 
 [node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
 
