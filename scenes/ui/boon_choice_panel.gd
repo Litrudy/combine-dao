@@ -39,13 +39,41 @@ func show_boons(boons: Array) -> void:
 	for i in _buttons.size():
 		var button: Button = _buttons[i]
 		if i < boons.size():
-			var boon: Dictionary = boons[i]
-			# 按钮显示：机缘名称 + 简短描述
-			button.text = "%s\n%s" % [boon.get("boon_name", "?"), boon.get("description", "")]
+			_setup_button(button, boons[i])
 			button.visible = true
 		else:
 			button.visible = false
 	visible = true
+
+
+## 根据机缘数据设置单个按钮的文字与颜色
+func _setup_button(button: Button, boon: Dictionary) -> void:
+	var grade_name: String = boon.get("grade_name", "")
+	var boon_name: String = boon.get("boon_name", "?")
+	var star_text: String = boon.get("star_text", "")
+	var description: String = boon.get("description", "")
+
+	# 第一行：【品阶】机缘名 星级
+	var title_line: String = boon_name
+	if grade_name != "":
+		title_line = "【%s】%s" % [grade_name, boon_name]
+	if star_text != "":
+		title_line += " " + star_text
+
+	# 效果行：基础值 → 最终值（仅当效果值为数字时显示）
+	var effect_line: String = ""
+	var base_value = boon.get("effect_value", null)
+	var final_value = boon.get("final_effect_value", null)
+	if final_value != null and (base_value is int or base_value is float):
+		effect_line = "\n效果：%s → %s" % [str(base_value), str(final_value)]
+
+	button.text = "%s\n%s%s" % [title_line, description, effect_line]
+
+	# 按钮文字颜色使用品阶颜色（缺失时用白色）
+	var color_hex: String = boon.get("grade_color", "#FFFFFF")
+	button.add_theme_color_override("font_color", Color(color_hex))
+	button.add_theme_color_override("font_hover_color", Color(color_hex))
+	button.add_theme_color_override("font_pressed_color", Color(color_hex))
 
 
 ## 按钮点击：发出选择信号并隐藏面板

@@ -33,6 +33,8 @@ var cultivation_level: int = 1
 var acquired_boon_ids: Array[String] = []
 ## 已获得机缘的次数 { id -> count }（用于叠加上限判断与 HUD 显示）
 var acquired_boon_counts: Dictionary = {}
+## 已获得机缘的品质标签 { id -> "【玄品】基础剑气 ★★★" }（首次获得时记录，便于 HUD 显示，也为 M2-3B 锁定品质预留）
+var acquired_boon_labels: Dictionary = {}
 
 ## 各流派已获得机缘数量
 var school_counts: Dictionary = {
@@ -277,6 +279,8 @@ func _on_boon_selected(boon: Dictionary) -> void:
 	if id != "":
 		if not id in acquired_boon_ids:
 			acquired_boon_ids.append(id)
+			# 首次获得时记录品质标签（首次品质即锁定，便于 HUD 显示）
+			acquired_boon_labels[id] = _format_boon_label(boon)
 		acquired_boon_counts[id] = int(acquired_boon_counts.get(id, 0)) + 1
 
 	# 根据流派标签更新流派计数，并检查专精
@@ -347,98 +351,114 @@ func check_specializations() -> void:
 		print("激活专精：万毒扩散，毒爆范围与伤害提升")
 
 
-## 根据机缘 id 应用效果（M1 任务 7：实现剑气流三个机缘）
+## 根据机缘 id 应用效果（M2-3A：数值类机缘按 final_effect_value 生效）
 func apply_boon(boon: Dictionary) -> void:
 	var id: String = boon.get("id", "")
+	# 显示用前缀：【品阶】机缘名 星级
+	var label: String = _format_boon_label(boon)
+	# 实际生效数值：优先用品阶星级加成后的 final_effect_value，回退基础 effect_value
+	var fv = boon.get("final_effect_value", boon.get("effect_value", 0))
 
 	match id:
 		# ===== 剑气流 =====
 		"sword_qi_basic":
-			# 基础剑气：剑气伤害 +6
-			sword_damage_bonus += 6
-			print("已获得机缘：基础剑气，剑气伤害 +6")
+			# 基础剑气：剑气伤害加成
+			sword_damage_bonus += int(fv)
+			print("已获得机缘：", label, "，剑气伤害 +", int(fv))
 		"sword_qi_pierce":
-			# 剑气穿透：额外穿透次数 +2
-			sword_pierce_bonus += 2
-			print("已获得机缘：剑气穿透，穿透次数 +2")
+			# 剑气穿透：额外穿透次数
+			sword_pierce_bonus += int(fv)
+			print("已获得机缘：", label, "，穿透次数 +", int(fv))
 		"sword_execute":
-			# 残血斩杀：开启斩杀低血敌人
+			# 残血斩杀（解锁型）：不使用倍率
 			sword_execute_enabled = true
-			print("已获得机缘：残血斩杀，剑气可斩杀低于 20% 气血的敌人")
+			print("已获得机缘：", label, "，剑气可斩杀低气血敌人")
 		# ===== 御兽流 =====
 		"beast_summon_wolf":
-			# 召唤灵狼：实例化一只灵狼协助作战
+			# 召唤灵狼（解锁型）：不使用倍率
 			summon_spirit_wolf()
-			print("已获得机缘：召唤灵狼，灵狼加入战斗")
+			print("已获得机缘：", label, "，灵狼加入战斗")
 		"beast_attack_speed":
-			# 灵兽攻速提升：倍率 +0.3 并同步到已有灵狼
-			beast_attack_speed_multiplier += 0.3
+			# 灵兽攻速提升
+			beast_attack_speed_multiplier += float(fv)
 			update_wolf_attack_speed()
-			print("已获得机缘：灵兽攻速提升，灵兽攻速 +30%")
+			print("已获得机缘：", label, "，灵兽攻速 +", float(fv))
 		"beast_guard":
-			# 灵兽护主：开启减伤
+			# 灵兽护主（解锁型）：不使用倍率
 			beast_guard_enabled = true
-			print("已获得机缘：灵兽护主，灵兽为玩家分担 40% 伤害")
+			print("已获得机缘：", label, "，灵兽为玩家分担伤害")
 		# ===== 毒蛊流 =====
 		"poison_mist":
-			# 毒雾：解锁 Q 键释放毒雾
+			# 毒雾（解锁型）：不使用倍率
 			poison_mist_unlocked = true
-			poison_damage_bonus += 0
-			print("已获得机缘：毒雾，按 Q 可在鼠标位置释放毒雾")
+			print("已获得机缘：", label, "，按 Q 可释放毒雾")
 		"poison_stack":
-			# 叠毒：开启叠毒，最多 5 层
+			# 叠毒（解锁型）：不使用倍率
 			poison_stack_enabled = true
 			poison_max_stack = 5
-			print("已获得机缘：叠毒，毒伤最多叠加 5 层")
+			print("已获得机缘：", label, "，毒伤最多叠加 5 层")
 		"poison_explosion":
-			# 毒爆：中毒目标死亡时扩散毒伤
+			# 毒爆（解锁型）：不使用倍率
 			poison_explosion_enabled = true
-			print("已获得机缘：毒爆，中毒目标死亡时扩散毒伤")
+			print("已获得机缘：", label, "，中毒目标死亡时扩散毒伤")
 		# ===== M2-3 新增：剑气流 =====
 		"sword_qi_fast_cast":
-			# 御剑疾发：攻击冷却减少 0.1 秒（下限 0.15）
-			attack_cooldown = max(0.15, attack_cooldown - 0.1)
-			print("已获得机缘：御剑疾发，剑气释放更快")
+			# 御剑疾发：攻击冷却减少（fv 为负值），下限 0.15
+			attack_cooldown = max(0.15, attack_cooldown + float(fv))
+			print("已获得机缘：", label, "，剑气释放更快")
 		"sword_qi_heavy":
-			# 重剑气：伤害 +10，但冷却 +0.1
-			sword_damage_bonus += 10
+			# 重剑气：伤害加成（受倍率），冷却 +0.1（固定惩罚）
+			sword_damage_bonus += int(fv)
 			attack_cooldown += 0.1
-			print("已获得机缘：重剑气，剑气伤害提升但释放变慢")
+			print("已获得机缘：", label, "，剑气伤害 +", int(fv), " 但释放变慢")
 		"sword_qi_wide":
-			# 剑气扩幅：剑气宽度 +1（释放时传给剑气）
-			sword_width_bonus += 1
-			print("已获得机缘：剑气扩幅，剑气范围变宽")
+			# 剑气扩幅：剑气宽度加成
+			sword_width_bonus += int(fv)
+			print("已获得机缘：", label, "，剑气范围变宽")
 		# ===== M2-3 新增：御兽流 =====
 		"beast_wolf_damage":
-			# 灵狼利爪：灵狼伤害 +4，并更新已召唤灵狼
-			wolf_damage_bonus += 4
+			# 灵狼利爪：灵狼伤害加成
+			wolf_damage_bonus += int(fv)
 			update_wolf_damage()
-			print("已获得机缘：灵狼利爪，灵狼伤害提升")
+			print("已获得机缘：", label, "，灵狼伤害 +", int(fv))
 		"beast_wolf_speed":
-			# 灵狼迅捷：灵狼移速 +20%，并更新已召唤灵狼
-			wolf_move_speed_multiplier += 0.2
+			# 灵狼迅捷：灵狼移速倍率加成
+			wolf_move_speed_multiplier += float(fv)
 			update_wolf_move_speed()
-			print("已获得机缘：灵狼迅捷，灵狼速度提升")
+			print("已获得机缘：", label, "，灵狼速度提升")
 		"beast_extra_wolf":
-			# 双狼同行：额外召唤一只灵狼
+			# 双狼同行（解锁型）：额外召唤一只灵狼
 			summon_spirit_wolf()
-			print("已获得机缘：双狼同行，额外灵狼加入战斗")
+			print("已获得机缘：", label, "，额外灵狼加入战斗")
 		# ===== M2-3 新增：毒蛊流 =====
 		"poison_mist_duration":
-			# 毒雾延绵：毒雾持续时间 +1 秒
-			poison_duration_bonus += 1.0
-			print("已获得机缘：毒雾延绵，毒雾持续时间提升")
+			# 毒雾延绵：持续时间加成
+			poison_duration_bonus += float(fv)
+			print("已获得机缘：", label, "，毒雾持续时间 +", float(fv))
 		"poison_mist_radius":
-			# 毒域扩张：毒雾范围 +20
-			poison_radius_bonus += 20
-			print("已获得机缘：毒域扩张，毒雾范围扩大")
+			# 毒域扩张：范围加成
+			poison_radius_bonus += int(fv)
+			print("已获得机缘：", label, "，毒雾范围扩大")
 		"poison_corrosion":
-			# 蚀骨毒：毒雾每跳伤害 +2
-			poison_damage_bonus += 2
-			print("已获得机缘：蚀骨毒，毒雾伤害提升")
+			# 蚀骨毒：毒雾每跳伤害加成
+			poison_damage_bonus += int(fv)
+			print("已获得机缘：", label, "，毒雾伤害 +", int(fv))
 		_:
 			# 未知机缘，兜底提示
-			print("已获得机缘：", boon.get("boon_name", "?"), "（效果未实现）")
+			print("已获得机缘：", label, "（效果未实现）")
+
+
+## 组装机缘显示前缀：【品阶】机缘名 星级（缺字段时安全降级）
+func _format_boon_label(boon: Dictionary) -> String:
+	var boon_name: String = boon.get("boon_name", "?")
+	var grade_name: String = boon.get("grade_name", "")
+	var star_text: String = boon.get("star_text", "")
+	var result: String = boon_name
+	if grade_name != "":
+		result = "【%s】%s" % [grade_name, boon_name]
+	if star_text != "":
+		result += " " + star_text
+	return result
 
 
 # ===== 御兽流 =====
@@ -559,14 +579,15 @@ func _on_vitals_died() -> void:
 
 ## 返回 HUD 需要的数据快照（HUD 只读，不修改玩家数据）
 func get_hud_data() -> Dictionary:
-	# 已获得机缘名称列表（用机缘数据建立 id -> 名称 映射）
+	# 已获得机缘名称列表（带品阶星级，重复机缘附加 ×N）
 	var acquired_boon_names: Array[String] = []
 	var id_to_name: Dictionary = {}
 	for boon in _boon_manager.get_all_boons():
 		id_to_name[boon.get("id", "")] = boon.get("boon_name", "?")
 	for id in acquired_boon_ids:
-		var display_name: String = id_to_name.get(id, id)
-		# 获得多次的机缘附加数量后缀，如「御剑疾发 ×2」
+		# 优先用获得时记录的品质标签，缺失时退回纯名称
+		var display_name: String = acquired_boon_labels.get(id, id_to_name.get(id, id))
+		# 获得多次的机缘附加数量后缀，如「【玄品】御剑疾发 ★★★ ×2」
 		var count: int = int(acquired_boon_counts.get(id, 1))
 		if count > 1:
 			display_name += " ×%d" % count

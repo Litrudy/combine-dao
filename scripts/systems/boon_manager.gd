@@ -20,6 +20,48 @@ class_name BoonManager
 ## 基础机缘（未获得时提高出现权重）
 const BASE_BOONS: Array[String] = ["sword_qi_basic", "beast_summon_wolf", "poison_mist"]
 
+## 机缘品阶定义（按概率抽取，倍率不超过 1.38）
+const GRADES: Array[Dictionary] = [
+	{"id": "fan", "name": "凡品", "color_name": "white", "color": "#FFFFFF", "probability": 55, "multiplier": 1.00},
+	{"id": "huang", "name": "黄品", "color_name": "green", "color": "#58D66D", "probability": 25, "multiplier": 1.08},
+	{"id": "xuan", "name": "玄品", "color_name": "blue", "color": "#4AA3FF", "probability": 13, "multiplier": 1.16},
+	{"id": "di", "name": "地品", "color_name": "purple", "color": "#B065FF", "probability": 5, "multiplier": 1.25},
+	{"id": "tian", "name": "天品", "color_name": "red", "color": "#FF4B4B", "probability": 2, "multiplier": 1.38},
+]
+
+## 机缘星级定义（1-5 星，倍率不超过 1.38）
+const STAR_TIERS: Array[Dictionary] = [
+	{"stars": 1, "probability": 40, "multiplier": 1.00},
+	{"stars": 2, "probability": 28, "multiplier": 1.08},
+	{"stars": 3, "probability": 18, "multiplier": 1.16},
+	{"stars": 4, "probability": 10, "multiplier": 1.26},
+	{"stars": 5, "probability": 4, "multiplier": 1.38},
+]
+
+
+## 按概率随机返回一个品阶 Dictionary
+func roll_grade() -> Dictionary:
+	return _pick_by_probability(GRADES)
+
+
+## 按概率随机返回一个星级 Dictionary
+func roll_stars() -> Dictionary:
+	return _pick_by_probability(STAR_TIERS)
+
+
+## 按各项 probability 加权随机选择一个条目
+func _pick_by_probability(tiers: Array) -> Dictionary:
+	var total: float = 0.0
+	for tier in tiers:
+		total += float(tier["probability"])
+	var r: float = randf() * total
+	var acc: float = 0.0
+	for tier in tiers:
+		acc += float(tier["probability"])
+		if r <= acc:
+			return tier
+	return tiers[tiers.size() - 1]
+
 
 ## 返回全部 18 个机缘数据（每次返回新数组，避免外部修改污染）
 func get_all_boons() -> Array[Dictionary]:
@@ -287,9 +329,40 @@ func roll_boons(acquired_boon_counts: Dictionary, school_counts: Dictionary, cou
 	var amount: int = min(count, candidates.size())
 	for _i in amount:
 		var idx: int = _weighted_pick(candidates)
-		result.append(candidates[idx]["boon"])
+		var boon: Dictionary = candidates[idx]["boon"]
+		# 为本次出现的机缘附加临时品阶 / 星级数据
+		_attach_quality(boon)
+		result.append(boon)
 		candidates.remove_at(idx)
 	return result
+
+
+## 为机缘附加品阶 / 星级 / 倍率 / 最终数值字段（不修改原始 effect_value）
+## M2-3A：每次出现随机品质；M2-3B 再做“选择后锁定品质”
+func _attach_quality(boon: Dictionary) -> void:
+	var grade: Dictionary = roll_grade()
+	var star: Dictionary = roll_stars()
+	var final_multiplier: float = float(grade["multiplier"]) * float(star["multiplier"])
+
+	boon["grade_id"] = grade["id"]
+	boon["grade_name"] = grade["name"]
+	boon["grade_color"] = grade["color"]
+	boon["grade_multiplier"] = grade["multiplier"]
+	boon["stars"] = star["stars"]
+	boon["star_text"] = "★".repeat(int(star["stars"]))
+	boon["star_multiplier"] = star["multiplier"]
+	boon["final_multiplier"] = final_multiplier
+	boon["final_effect_value"] = _compute_final_value(boon.get("effect_value", 0), final_multiplier)
+
+
+## 计算最终数值：int 取整、float 保留两位小数、非数字原样返回
+func _compute_final_value(base_value, final_multiplier: float):
+	if base_value is int:
+		return int(round(base_value * final_multiplier))
+	elif base_value is float:
+		return snappedf(base_value * final_multiplier, 0.01)
+	else:
+		return base_value
 
 
 ## 前置条件是否全部满足（已获得次数 > 0 视为已获得）
