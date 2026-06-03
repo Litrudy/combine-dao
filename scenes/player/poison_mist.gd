@@ -16,10 +16,10 @@ extends Area2D
 ## 是否启用毒爆
 @export var poison_explosion_enabled: bool = false
 
-## 毒爆范围（像素）
-const EXPLOSION_RADIUS: float = 120.0
-## 毒爆对其他妖兽造成的毒伤
-const EXPLOSION_DAMAGE: int = 8
+## 毒爆范围（像素，可由玩家释放时传入，含专精加成）
+@export var explosion_radius: float = 120.0
+## 毒爆对其他妖兽造成的毒伤（可由玩家释放时传入，含专精加成）
+@export var explosion_damage: int = 8
 
 ## 存活计时（剩余持续时间）
 var _life_timer: float = 0.0
@@ -28,11 +28,21 @@ var _tick_timer: float = 0.0
 ## 每只妖兽的当前毒层数 { enemy:Node -> stack:int }
 var _poison_stacks: Dictionary = {}
 
+## 毒雾范围加成（机缘「毒域扩张」，由玩家释放时传入）
+var radius_bonus: int = 0
+## 毒雾基础范围（与场景碰撞圆半径一致）
+const BASE_RADIUS: float = 80.0
+
 
 func _ready() -> void:
 	_life_timer = duration
 	# 第一次结算等待一个 tick_interval
 	_tick_timer = tick_interval
+	# 根据范围加成缩放碰撞体与视觉（影响 get_overlapping_bodies 的检测范围）
+	if radius_bonus != 0:
+		var radius_scale: float = (BASE_RADIUS + radius_bonus) / BASE_RADIUS
+		$CollisionShape2D.scale = Vector2(radius_scale, radius_scale)
+		$Visual.scale = Vector2(radius_scale, radius_scale)
 
 
 func _physics_process(delta: float) -> void:
@@ -90,9 +100,9 @@ func _trigger_explosion(source_enemy: Node) -> void:
 		if enemy == source_enemy or not is_instance_valid(enemy) or not enemy is Node2D:
 			continue
 		# 仅影响毒爆范围内的妖兽
-		if source_pos.distance_to((enemy as Node2D).global_position) > EXPLOSION_RADIUS:
+		if source_pos.distance_to((enemy as Node2D).global_position) > explosion_radius:
 			continue
 		var enemy_vitals: Vitals = enemy.get_node_or_null("Vitals") as Vitals
 		# 直接造成毒伤，不再二次引爆，避免连锁递归
 		if enemy_vitals != null and not enemy_vitals.is_dead():
-			enemy_vitals.take_damage(EXPLOSION_DAMAGE)
+			enemy_vitals.take_damage(explosion_damage)

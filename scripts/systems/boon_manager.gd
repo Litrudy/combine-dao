@@ -1,20 +1,27 @@
 extends RefCounted
 class_name BoonManager
 ## 机缘管理器
-## M1 任务 6 / 7 —— 内置机缘数据并提供随机抽取。
+## M1 任务 6/7 + M2-3 —— 内置机缘数据并提供带权重的随机抽取。
 ## 仅负责数据与抽取，不负责效果应用（效果由玩家 apply_boon 处理）。
 ##
 ## 每个机缘为一个 Dictionary，字段：
 ##   id            机缘唯一标识
-##   boon_name     机缘名称（用于显示）
+##   boon_name     机缘名称（显示）
 ##   description   简短描述
-##   school_tags   所属流派标签（剑气流 / 御兽 / 毒蛊）
-##   effect_type   效果类型（玩家据此修改属性）
+##   school_tags   所属流派标签（sword / beast / poison）
+##   effect_type   效果类型
 ##   effect_value  效果数值
 ##   prerequisites 前置机缘 id 列表，需全部已获得才会出现
+##   rarity        稀有度：common / rare / epic
+##   base_weight   基础权重（common=100 / rare=45 / epic=15）
+##   max_stacks    最大可叠加次数（不可重复为 1）
+##   current_stacks 占位字段，实际叠加次数由玩家 acquired_boon_counts 计算
+
+## 基础机缘（未获得时提高出现权重）
+const BASE_BOONS: Array[String] = ["sword_qi_basic", "beast_summon_wolf", "poison_mist"]
 
 
-## 返回 M1 全部 9 个机缘数据（每次返回新数组，避免外部修改污染）
+## 返回全部 18 个机缘数据（每次返回新数组，避免外部修改污染）
 func get_all_boons() -> Array[Dictionary]:
 	return [
 		# ===== 剑气流 =====
@@ -22,28 +29,79 @@ func get_all_boons() -> Array[Dictionary]:
 			"id": "sword_qi_basic",
 			"boon_name": "基础剑气",
 			"description": "剑气伤害 +6。",
-			"school_tags": ["剑气流"],
+			"school_tags": ["sword"],
 			"effect_type": "sword_damage_bonus",
 			"effect_value": 6,
 			"prerequisites": [],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		{
 			"id": "sword_qi_pierce",
 			"boon_name": "剑气穿透",
 			"description": "剑气可额外穿透 2 个敌人。",
-			"school_tags": ["剑气流"],
+			"school_tags": ["sword"],
 			"effect_type": "sword_pierce_bonus",
 			"effect_value": 2,
 			"prerequisites": ["sword_qi_basic"],
+			"rarity": "rare",
+			"base_weight": 45,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		{
 			"id": "sword_execute",
 			"boon_name": "残血斩杀",
 			"description": "斩杀气血低于 20% 的敌人。",
-			"school_tags": ["剑气流"],
+			"school_tags": ["sword"],
 			"effect_type": "sword_execute",
 			"effect_value": 0.2,
 			"prerequisites": ["sword_qi_basic"],
+			"rarity": "epic",
+			"base_weight": 15,
+			"max_stacks": 1,
+			"current_stacks": 0,
+		},
+		{
+			"id": "sword_qi_fast_cast",
+			"boon_name": "御剑疾发",
+			"description": "剑气攻击冷却减少 0.1 秒。",
+			"school_tags": ["sword"],
+			"effect_type": "attack_cooldown_bonus",
+			"effect_value": -0.1,
+			"prerequisites": ["sword_qi_basic"],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 3,
+			"current_stacks": 0,
+		},
+		{
+			"id": "sword_qi_heavy",
+			"boon_name": "重剑气",
+			"description": "剑气伤害 +10，但攻击冷却 +0.1 秒。",
+			"school_tags": ["sword"],
+			"effect_type": "sword_heavy",
+			"effect_value": 10,
+			"prerequisites": ["sword_qi_basic"],
+			"rarity": "rare",
+			"base_weight": 45,
+			"max_stacks": 2,
+			"current_stacks": 0,
+		},
+		{
+			"id": "sword_qi_wide",
+			"boon_name": "剑气扩幅",
+			"description": "剑气碰撞范围变宽。",
+			"school_tags": ["sword"],
+			"effect_type": "sword_width_bonus",
+			"effect_value": 1,
+			"prerequisites": ["sword_qi_basic"],
+			"rarity": "rare",
+			"base_weight": 45,
+			"max_stacks": 2,
+			"current_stacks": 0,
 		},
 		# ===== 御兽流 =====
 		{
@@ -54,6 +112,10 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "summon_wolf",
 			"effect_value": 1,
 			"prerequisites": [],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		{
 			"id": "beast_attack_speed",
@@ -63,6 +125,10 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "beast_attack_speed",
 			"effect_value": 0.3,
 			"prerequisites": ["beast_summon_wolf"],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		{
 			"id": "beast_guard",
@@ -72,6 +138,49 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "beast_guard",
 			"effect_value": 0.4,
 			"prerequisites": ["beast_summon_wolf"],
+			"rarity": "rare",
+			"base_weight": 45,
+			"max_stacks": 1,
+			"current_stacks": 0,
+		},
+		{
+			"id": "beast_wolf_damage",
+			"boon_name": "灵狼利爪",
+			"description": "灵狼伤害 +4。",
+			"school_tags": ["beast"],
+			"effect_type": "wolf_damage_bonus",
+			"effect_value": 4,
+			"prerequisites": ["beast_summon_wolf"],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 3,
+			"current_stacks": 0,
+		},
+		{
+			"id": "beast_wolf_speed",
+			"boon_name": "灵狼迅捷",
+			"description": "灵狼移动速度 +20%。",
+			"school_tags": ["beast"],
+			"effect_type": "wolf_move_speed_bonus",
+			"effect_value": 0.2,
+			"prerequisites": ["beast_summon_wolf"],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 3,
+			"current_stacks": 0,
+		},
+		{
+			"id": "beast_extra_wolf",
+			"boon_name": "双狼同行",
+			"description": "额外召唤一只灵狼。",
+			"school_tags": ["beast"],
+			"effect_type": "extra_wolf",
+			"effect_value": 1,
+			"prerequisites": ["beast_summon_wolf"],
+			"rarity": "epic",
+			"base_weight": 15,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		# ===== 毒蛊流 =====
 		{
@@ -82,6 +191,10 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "poison_mist",
 			"effect_value": 1,
 			"prerequisites": [],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		{
 			"id": "poison_stack",
@@ -91,6 +204,10 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "poison_stack",
 			"effect_value": 5,
 			"prerequisites": ["poison_mist"],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 1,
+			"current_stacks": 0,
 		},
 		{
 			"id": "poison_explosion",
@@ -100,35 +217,119 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "poison_explosion",
 			"effect_value": 120,
 			"prerequisites": ["poison_mist"],
+			"rarity": "epic",
+			"base_weight": 15,
+			"max_stacks": 1,
+			"current_stacks": 0,
+		},
+		{
+			"id": "poison_mist_duration",
+			"boon_name": "毒雾延绵",
+			"description": "毒雾持续时间 +1 秒。",
+			"school_tags": ["poison"],
+			"effect_type": "poison_duration_bonus",
+			"effect_value": 1.0,
+			"prerequisites": ["poison_mist"],
+			"rarity": "common",
+			"base_weight": 100,
+			"max_stacks": 3,
+			"current_stacks": 0,
+		},
+		{
+			"id": "poison_mist_radius",
+			"boon_name": "毒域扩张",
+			"description": "毒雾范围扩大。",
+			"school_tags": ["poison"],
+			"effect_type": "poison_radius_bonus",
+			"effect_value": 20,
+			"prerequisites": ["poison_mist"],
+			"rarity": "rare",
+			"base_weight": 45,
+			"max_stacks": 3,
+			"current_stacks": 0,
+		},
+		{
+			"id": "poison_corrosion",
+			"boon_name": "蚀骨毒",
+			"description": "毒雾每跳额外伤害 +2。",
+			"school_tags": ["poison"],
+			"effect_type": "poison_damage_bonus",
+			"effect_value": 2,
+			"prerequisites": ["poison_mist"],
+			"rarity": "rare",
+			"base_weight": 45,
+			"max_stacks": 3,
+			"current_stacks": 0,
 		},
 	]
 
 
-## 根据玩家已获得的机缘，从「未获得且前置满足」的机缘中随机抽取
-## acquired_boon_ids：玩家已获得的机缘 id 列表
+## 带权重的随机抽取
+## acquired_boon_counts：玩家已获得机缘的次数 { id -> count }
+## school_counts：各流派已获得数量 { sword/beast/poison -> count }
 ## count：期望抽取数量（可选机缘不足时返回实际数量）
-func roll_boons(acquired_boon_ids: Array[String], count: int = 3) -> Array:
-	var available: Array[Dictionary] = []
+func roll_boons(acquired_boon_counts: Dictionary, school_counts: Dictionary, count: int = 3) -> Array:
+	# 收集候选：满足前置 + 未达 max_stacks
+	var candidates: Array = []
 	for boon in get_all_boons():
-		var id: String = boon.get("id", "")
-		# 已获得过的机缘不再出现
-		if id in acquired_boon_ids:
+		if not _prerequisites_met(boon, acquired_boon_counts):
 			continue
-		# 前置条件未全部满足则跳过
-		if not _prerequisites_met(boon, acquired_boon_ids):
+		var current: int = int(acquired_boon_counts.get(boon["id"], 0))
+		if current >= int(boon.get("max_stacks", 1)):
 			continue
-		available.append(boon)
+		candidates.append({
+			"boon": boon,
+			"weight": _compute_weight(boon, acquired_boon_counts, school_counts),
+		})
 
-	# 洗牌后取前 count 个，天然保证不重复
-	available.shuffle()
-	var amount: int = min(count, available.size())
-	return available.slice(0, amount)
+	# 加权不放回抽取，保证不重复、不死循环
+	var result: Array = []
+	var amount: int = min(count, candidates.size())
+	for _i in amount:
+		var idx: int = _weighted_pick(candidates)
+		result.append(candidates[idx]["boon"])
+		candidates.remove_at(idx)
+	return result
 
 
-## 判断机缘的前置条件是否全部满足
-func _prerequisites_met(boon: Dictionary, acquired_boon_ids: Array[String]) -> bool:
-	var prerequisites: Array = boon.get("prerequisites", [])
-	for prereq in prerequisites:
-		if not prereq in acquired_boon_ids:
+## 前置条件是否全部满足（已获得次数 > 0 视为已获得）
+func _prerequisites_met(boon: Dictionary, acquired_boon_counts: Dictionary) -> bool:
+	for prereq in boon.get("prerequisites", []):
+		if int(acquired_boon_counts.get(prereq, 0)) <= 0:
 			return false
 	return true
+
+
+## 计算机缘权重
+func _compute_weight(boon: Dictionary, acquired_boon_counts: Dictionary, school_counts: Dictionary) -> float:
+	var weight: float = float(boon.get("base_weight", 100))
+	var id: String = boon["id"]
+
+	# 基础机缘未获得时大幅提高权重
+	if id in BASE_BOONS and int(acquired_boon_counts.get(id, 0)) == 0:
+		weight *= 3.0
+
+	# 流派倾向：所属流派数量 >= 2 时权重 +50%
+	for tag in boon.get("school_tags", []):
+		if int(school_counts.get(tag, 0)) >= 2:
+			weight *= 1.5
+			break
+
+	return weight
+
+
+## 按权重从候选中挑选一个，返回索引
+func _weighted_pick(candidates: Array) -> int:
+	var total: float = 0.0
+	for entry in candidates:
+		total += entry["weight"]
+	# 防御：总权重无效时退回首个
+	if total <= 0.0:
+		return 0
+	var r: float = randf() * total
+	var acc: float = 0.0
+	for i in candidates.size():
+		acc += candidates[i]["weight"]
+		if r <= acc:
+			return i
+	return candidates.size() - 1

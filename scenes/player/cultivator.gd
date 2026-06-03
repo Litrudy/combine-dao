@@ -29,8 +29,29 @@ var cultivation_exp: int = 0
 var cultivation_exp_required: int = 3
 ## 修炼层数
 var cultivation_level: int = 1
-## 已获得的机缘 id 列表（用于前置筛选与去重）
+## 已获得的机缘 id 列表（首次获得才记录，用于兼容旧逻辑）
 var acquired_boon_ids: Array[String] = []
+## 已获得机缘的次数 { id -> count }（用于叠加上限判断与 HUD 显示）
+var acquired_boon_counts: Dictionary = {}
+
+## 各流派已获得机缘数量
+var school_counts: Dictionary = {
+	"sword": 0,
+	"beast": 0,
+	"poison": 0,
+}
+## 已激活的专精 id 列表（每个专精只触发一次）
+var active_specializations: Array[String] = []
+
+## 专精 id -> 名称映射（用于 HUD 显示）
+const SPECIALIZATION_NAMES: Dictionary = {
+	"sword_2": "剑意初成",
+	"sword_3": "剑心通明",
+	"beast_2": "御兽协同",
+	"beast_3": "万兽同心",
+	"poison_2": "毒蛊入体",
+	"poison_3": "万毒扩散",
+}
 
 ## 剑气流：剑气伤害加成（由机缘累加）
 var sword_damage_bonus: int = 0
@@ -38,11 +59,22 @@ var sword_damage_bonus: int = 0
 var sword_pierce_bonus: int = 0
 ## 剑气流：是否启用残血斩杀
 var sword_execute_enabled: bool = false
+## 剑气流：斩杀气血阈值（专精「剑心通明」可提升到 0.3）
+var sword_execute_threshold: float = 0.2
+## 剑气流：剑气宽度加成（机缘「剑气扩幅」）
+var sword_width_bonus: int = 0
 
 ## 御兽流：已召唤的灵狼列表
 var summoned_wolves: Array[Node] = []
 ## 御兽流：灵兽攻速倍率
 var beast_attack_speed_multiplier: float = 1.0
+## 御兽流：灵狼伤害加成（机缘「灵狼利爪」）
+var wolf_damage_bonus: int = 0
+## 御兽流：灵狼移速倍率（机缘「灵狼迅捷」/ 专精「御兽协同」）
+var wolf_move_speed_multiplier: float = 1.0
+## 灵狼基础伤害 / 基础移速（用于重算加成）
+const WOLF_BASE_DAMAGE: int = 8
+const WOLF_BASE_MOVE_SPEED: float = 140.0
 ## 御兽流：是否启用灵兽护主
 var beast_guard_enabled: bool = false
 ## 御兽流：灵兽护主减伤比例（40%）
@@ -58,6 +90,14 @@ var poison_explosion_enabled: bool = false
 var poison_damage_bonus: int = 0
 ## 毒蛊流：叠毒最大层数
 var poison_max_stack: int = 1
+## 毒蛊流：毒爆范围加成（专精「万毒扩散」）
+var poison_explosion_radius_bonus: int = 0
+## 毒蛊流：毒爆伤害加成（专精「万毒扩散」）
+var poison_explosion_damage_bonus: int = 0
+## 毒蛊流：毒雾持续时间加成（机缘「毒雾延绵」）
+var poison_duration_bonus: float = 0.0
+## 毒蛊流：毒雾范围加成（机缘「毒域扩张」）
+var poison_radius_bonus: int = 0
 ## 毒雾释放冷却（秒）
 @export var poison_cast_cooldown: float = 3.0
 
@@ -164,6 +204,8 @@ func _release_sword_qi() -> void:
 	sword_qi.damage += sword_damage_bonus
 	sword_qi.pierce_remaining = sword_pierce_bonus
 	sword_qi.execute_enabled = sword_execute_enabled
+	sword_qi.execute_threshold = sword_execute_threshold
+	sword_qi.width_bonus = sword_width_bonus
 	# 添加到场景树（挂到父节点下，使剑气独立于玩家移动）
 	get_parent().add_child(sword_qi)
 
@@ -206,8 +248,8 @@ func try_breakthrough() -> void:
 		push_warning("未找到机缘选择面板（BoonChoicePanel），无法弹出三选一")
 		return
 
-	# 根据已获得机缘筛选可选机缘
-	var boons: Array = _boon_manager.roll_boons(acquired_boon_ids, 3)
+	# 根据已获得机缘次数与流派倾向加权筛选可选机缘
+	var boons: Array = _boon_manager.roll_boons(acquired_boon_counts, school_counts, 3)
 	if boons.is_empty():
 		# 没有可选机缘：不卡死游戏，仅提示
 		print("当前没有可选机缘")
@@ -230,10 +272,18 @@ func _connect_boon_panel() -> void:
 func _on_boon_selected(boon: Dictionary) -> void:
 	# 应用效果（具体效果与提示由 apply_boon 处理）
 	apply_boon(boon)
-	# 记录已获得机缘，供前置筛选与去重
+	# 记录已获得机缘：首次才进 id 列表，次数始终累加
 	var id: String = boon.get("id", "")
-	if id != "" and not id in acquired_boon_ids:
-		acquired_boon_ids.append(id)
+	if id != "":
+		if not id in acquired_boon_ids:
+			acquired_boon_ids.append(id)
+		acquired_boon_counts[id] = int(acquired_boon_counts.get(id, 0)) + 1
+
+	# 根据流派标签更新流派计数，并检查专精
+	for tag in boon.get("school_tags", []):
+		if school_counts.has(tag):
+			school_counts[tag] += 1
+	check_specializations()
 
 	# 完成突破结算
 	complete_breakthrough_after_boon_selected()
@@ -250,6 +300,51 @@ func complete_breakthrough_after_boon_selected() -> void:
 
 	# 完成突破 + 获得机缘，通知 HUD 刷新
 	stats_changed.emit()
+
+
+# ===== 流派专精 =====
+
+## 检查并激活达到阈值的流派专精（每个专精只触发一次）
+func check_specializations() -> void:
+	# ----- 剑气流 -----
+	if school_counts["sword"] >= 2 and not "sword_2" in active_specializations:
+		active_specializations.append("sword_2")
+		# 剑意初成：剑气伤害额外提升
+		sword_damage_bonus += 4
+		print("激活专精：剑意初成，剑气伤害额外提升")
+	if school_counts["sword"] >= 3 and not "sword_3" in active_specializations:
+		active_specializations.append("sword_3")
+		# 剑心通明：斩杀阈值提升到 30%（无论是否已有残血斩杀，释放时统一使用此阈值）
+		sword_execute_threshold = 0.3
+		print("激活专精：剑心通明，斩杀阈值提升至 30%")
+
+	# ----- 御兽流 -----
+	if school_counts["beast"] >= 2 and not "beast_2" in active_specializations:
+		active_specializations.append("beast_2")
+		# 御兽协同：灵兽攻速 +0.2，灵狼移速倍率 +0.2（统一走移速倍率体系）
+		beast_attack_speed_multiplier += 0.2
+		wolf_move_speed_multiplier += 0.2
+		update_wolf_attack_speed()
+		update_wolf_move_speed()
+		print("激活专精：御兽协同，灵兽行动能力提升")
+	if school_counts["beast"] >= 3 and not "beast_3" in active_specializations:
+		active_specializations.append("beast_3")
+		# 万兽同心：额外召唤一只灵狼
+		summon_spirit_wolf()
+		print("激活专精：万兽同心，额外灵狼加入战斗")
+
+	# ----- 毒蛊流 -----
+	if school_counts["poison"] >= 2 and not "poison_2" in active_specializations:
+		active_specializations.append("poison_2")
+		# 毒蛊入体：毒雾伤害提升
+		poison_damage_bonus += 1
+		print("激活专精：毒蛊入体，毒雾伤害提升")
+	if school_counts["poison"] >= 3 and not "poison_3" in active_specializations:
+		active_specializations.append("poison_3")
+		# 万毒扩散：毒爆范围与伤害提升
+		poison_explosion_radius_bonus += 60
+		poison_explosion_damage_bonus += 4
+		print("激活专精：万毒扩散，毒爆范围与伤害提升")
 
 
 ## 根据机缘 id 应用效果（M1 任务 7：实现剑气流三个机缘）
@@ -299,6 +394,48 @@ func apply_boon(boon: Dictionary) -> void:
 			# 毒爆：中毒目标死亡时扩散毒伤
 			poison_explosion_enabled = true
 			print("已获得机缘：毒爆，中毒目标死亡时扩散毒伤")
+		# ===== M2-3 新增：剑气流 =====
+		"sword_qi_fast_cast":
+			# 御剑疾发：攻击冷却减少 0.1 秒（下限 0.15）
+			attack_cooldown = max(0.15, attack_cooldown - 0.1)
+			print("已获得机缘：御剑疾发，剑气释放更快")
+		"sword_qi_heavy":
+			# 重剑气：伤害 +10，但冷却 +0.1
+			sword_damage_bonus += 10
+			attack_cooldown += 0.1
+			print("已获得机缘：重剑气，剑气伤害提升但释放变慢")
+		"sword_qi_wide":
+			# 剑气扩幅：剑气宽度 +1（释放时传给剑气）
+			sword_width_bonus += 1
+			print("已获得机缘：剑气扩幅，剑气范围变宽")
+		# ===== M2-3 新增：御兽流 =====
+		"beast_wolf_damage":
+			# 灵狼利爪：灵狼伤害 +4，并更新已召唤灵狼
+			wolf_damage_bonus += 4
+			update_wolf_damage()
+			print("已获得机缘：灵狼利爪，灵狼伤害提升")
+		"beast_wolf_speed":
+			# 灵狼迅捷：灵狼移速 +20%，并更新已召唤灵狼
+			wolf_move_speed_multiplier += 0.2
+			update_wolf_move_speed()
+			print("已获得机缘：灵狼迅捷，灵狼速度提升")
+		"beast_extra_wolf":
+			# 双狼同行：额外召唤一只灵狼
+			summon_spirit_wolf()
+			print("已获得机缘：双狼同行，额外灵狼加入战斗")
+		# ===== M2-3 新增：毒蛊流 =====
+		"poison_mist_duration":
+			# 毒雾延绵：毒雾持续时间 +1 秒
+			poison_duration_bonus += 1.0
+			print("已获得机缘：毒雾延绵，毒雾持续时间提升")
+		"poison_mist_radius":
+			# 毒域扩张：毒雾范围 +20
+			poison_radius_bonus += 20
+			print("已获得机缘：毒域扩张，毒雾范围扩大")
+		"poison_corrosion":
+			# 蚀骨毒：毒雾每跳伤害 +2
+			poison_damage_bonus += 2
+			print("已获得机缘：蚀骨毒，毒雾伤害提升")
 		_:
 			# 未知机缘，兜底提示
 			print("已获得机缘：", boon.get("boon_name", "?"), "（效果未实现）")
@@ -318,8 +455,10 @@ func summon_spirit_wolf() -> void:
 	# 绑定主人
 	if wolf.has_method("setup"):
 		wolf.setup(self)
-	# 记录并按当前攻速倍率更新
+	# 记录并按当前各项加成初始化新灵狼
 	summoned_wolves.append(wolf)
+	wolf.attack_damage = WOLF_BASE_DAMAGE + wolf_damage_bonus
+	wolf.move_speed = WOLF_BASE_MOVE_SPEED * wolf_move_speed_multiplier
 	update_wolf_attack_speed()
 
 
@@ -328,6 +467,20 @@ func update_wolf_attack_speed() -> void:
 	for wolf in summoned_wolves:
 		if is_instance_valid(wolf):
 			wolf.attack_speed_multiplier = beast_attack_speed_multiplier
+
+
+## 把当前伤害加成同步到所有存活灵狼
+func update_wolf_damage() -> void:
+	for wolf in summoned_wolves:
+		if is_instance_valid(wolf):
+			wolf.attack_damage = WOLF_BASE_DAMAGE + wolf_damage_bonus
+
+
+## 把当前移速倍率同步到所有存活灵狼
+func update_wolf_move_speed() -> void:
+	for wolf in summoned_wolves:
+		if is_instance_valid(wolf):
+			wolf.move_speed = WOLF_BASE_MOVE_SPEED * wolf_move_speed_multiplier
 
 
 ## 是否还有存活的灵狼
@@ -360,15 +513,22 @@ func cast_poison_mist() -> void:
 	if _poison_cast_timer > 0.0:
 		return
 
-	# 实例化毒雾并放到鼠标世界坐标
+	# 实例化毒雾（先设参数，再入场景，确保 _ready 读到正确的持续时间与范围）
 	var mist := POISON_MIST_SCENE.instantiate()
-	get_parent().add_child(mist)
-	mist.global_position = get_global_mouse_position()
 	# 传入当前毒蛊参数
 	mist.damage_per_second = 3 + poison_damage_bonus
 	mist.poison_stack_enabled = poison_stack_enabled
 	mist.max_poison_stack = poison_max_stack
 	mist.poison_explosion_enabled = poison_explosion_enabled
+	# 毒爆范围与伤害（含专精「万毒扩散」加成）
+	mist.explosion_radius = 120.0 + poison_explosion_radius_bonus
+	mist.explosion_damage = 8 + poison_explosion_damage_bonus
+	# 持续时间加成（机缘「毒雾延绵」）与范围加成（机缘「毒域扩张」）
+	mist.duration += poison_duration_bonus
+	mist.radius_bonus = poison_radius_bonus
+	# 位置与入场景
+	mist.position = get_global_mouse_position()
+	get_parent().add_child(mist)
 
 	# 重置冷却
 	_poison_cast_timer = poison_cast_cooldown
@@ -399,26 +559,29 @@ func _on_vitals_died() -> void:
 
 ## 返回 HUD 需要的数据快照（HUD 只读，不修改玩家数据）
 func get_hud_data() -> Dictionary:
-	# 各流派已获得机缘数量（按 id 前缀分类）
-	var school_counts: Dictionary = {"sword": 0, "beast": 0, "poison": 0}
-	# 已获得机缘名称列表
+	# 已获得机缘名称列表（用机缘数据建立 id -> 名称 映射）
 	var acquired_boon_names: Array[String] = []
-
-	# 用机缘数据建立 id -> 名称 映射
 	var id_to_name: Dictionary = {}
 	for boon in _boon_manager.get_all_boons():
 		id_to_name[boon.get("id", "")] = boon.get("boon_name", "?")
-
 	for id in acquired_boon_ids:
-		# 流派计数
-		if id.begins_with("sword"):
-			school_counts["sword"] += 1
-		elif id.begins_with("beast"):
-			school_counts["beast"] += 1
-		elif id.begins_with("poison"):
-			school_counts["poison"] += 1
-		# 名称列表
-		acquired_boon_names.append(id_to_name.get(id, id))
+		var display_name: String = id_to_name.get(id, id)
+		# 获得多次的机缘附加数量后缀，如「御剑疾发 ×2」
+		var count: int = int(acquired_boon_counts.get(id, 1))
+		if count > 1:
+			display_name += " ×%d" % count
+		acquired_boon_names.append(display_name)
+
+	# 已激活专精名称列表
+	var active_specialization_names: Array[String] = []
+	for spec_id in active_specializations:
+		active_specialization_names.append(SPECIALIZATION_NAMES.get(spec_id, spec_id))
+
+	# 存活灵狼数量
+	var wolf_count: int = 0
+	for wolf in summoned_wolves:
+		if is_instance_valid(wolf):
+			wolf_count += 1
 
 	return {
 		"current_hp": vitals.get_current_qi_blood(),
@@ -428,4 +591,10 @@ func get_hud_data() -> Dictionary:
 		"can_breakthrough": can_breakthrough(),
 		"school_counts": school_counts,
 		"acquired_boon_names": acquired_boon_names,
+		"active_specialization_names": active_specialization_names,
+		# ----- 实时调试数值 -----
+		"attack_cooldown": attack_cooldown,
+		"sword_damage_bonus": sword_damage_bonus,
+		"poison_tick_damage": 3 + poison_damage_bonus,
+		"wolf_count": wolf_count,
 	}

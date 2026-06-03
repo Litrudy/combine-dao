@@ -17,8 +17,11 @@ var direction: Vector2 = Vector2.RIGHT
 var pierce_remaining: int = 0
 ## 是否可斩杀残血敌人（由「残血斩杀」机缘提供）
 var execute_enabled: bool = false
-## 斩杀血量阈值（当前气血 / 最大气血 低于此值时斩杀）
-const EXECUTE_THRESHOLD: float = 0.2
+## 斩杀血量阈值（当前气血 / 最大气血 低于此值时斩杀，由玩家释放时传入）
+var execute_threshold: float = 0.2
+
+## 剑气宽度加成（机缘「剑气扩幅」，由玩家释放时传入）
+var width_bonus: int = 0
 
 ## 已命中过的目标，避免同一剑气对同一妖兽重复造成伤害
 var _hit_targets: Array = []
@@ -27,6 +30,11 @@ var _hit_targets: Array = []
 func _ready() -> void:
 	# 让剑气朝向与飞行方向一致
 	rotation = direction.angle()
+	# 根据宽度加成横向加宽（垂直于飞行方向的 y 轴）
+	if width_bonus > 0:
+		var width_scale: float = 1.0 + width_bonus * 0.6
+		$CollisionShape2D.scale.y = width_scale
+		$Visual.scale.y = width_scale
 	# 进入其他物体区域时触发命中判定
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
@@ -81,4 +89,4 @@ func _try_hit(target: Node) -> void:
 func _is_executable(enemy_vitals: Vitals) -> bool:
 	if enemy_vitals.max_qi_blood <= 0:
 		return false
-	return float(enemy_vitals.current_qi_blood) / float(enemy_vitals.max_qi_blood) < EXECUTE_THRESHOLD
+	return float(enemy_vitals.current_qi_blood) / float(enemy_vitals.max_qi_blood) < execute_threshold

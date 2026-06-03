@@ -10,7 +10,7 @@ script = ExtResource("1_hud")
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 340.0
-offset_bottom = 220.0
+offset_bottom = 300.0
 mouse_filter = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
@@ -48,4 +48,14 @@ text = "剑气：0
 [node name="BoonListLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "已获得机缘：暂无机缘"
+autowrap_mode = 2
+
+[node name="SpecLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "已激活专精：暂无专精"
+autowrap_mode = 2
+
+[node name="DebugStatLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "冷却：-  剑伤+0  毒伤-  灵狼0"
 autowrap_mode = 2
