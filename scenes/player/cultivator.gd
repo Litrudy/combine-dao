@@ -12,6 +12,8 @@ extends CharacterBody2D
 
 ## 剑气场景，释放时实例化
 const SwordQiScene: PackedScene = preload("res://scenes/player/sword_qi.tscn")
+## 灵狼场景，召唤时实例化
+const SPIRIT_WOLF_SCENE: PackedScene = preload("res://scenes/ally/spirit_wolf.tscn")
 
 var qi_blood: int
 var mana: int
@@ -29,6 +31,15 @@ var sword_damage_bonus: int = 0
 var sword_pierce_bonus: int = 0
 ## 剑气流：是否启用残血斩杀
 var sword_execute_enabled: bool = false
+
+## 御兽流：已召唤的灵狼列表
+var summoned_wolves: Array[Node] = []
+## 御兽流：灵兽攻速倍率
+var beast_attack_speed_multiplier: float = 1.0
+## 御兽流：是否启用灵兽护主
+var beast_guard_enabled: bool = false
+## 御兽流：灵兽护主减伤比例（40%）
+var beast_guard_ratio: float = 0.4
 
 ## 攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
@@ -197,9 +208,68 @@ func apply_boon(boon: Dictionary) -> void:
 			# 残血斩杀：开启斩杀低血敌人
 			sword_execute_enabled = true
 			print("已获得机缘：残血斩杀，剑气可斩杀低于 20% 气血的敌人")
+		# ===== 御兽流 =====
+		"beast_summon_wolf":
+			# 召唤灵狼：实例化一只灵狼协助作战
+			summon_spirit_wolf()
+			print("已获得机缘：召唤灵狼，灵狼加入战斗")
+		"beast_attack_speed":
+			# 灵兽攻速提升：倍率 +0.3 并同步到已有灵狼
+			beast_attack_speed_multiplier += 0.3
+			update_wolf_attack_speed()
+			print("已获得机缘：灵兽攻速提升，灵兽攻速 +30%")
+		"beast_guard":
+			# 灵兽护主：开启减伤
+			beast_guard_enabled = true
+			print("已获得机缘：灵兽护主，灵兽为玩家分担 40% 伤害")
 		_:
-			# 御兽流 / 毒蛊流留待后续里程碑实现
+			# 毒蛊流留待后续里程碑实现
 			print("已获得机缘：", boon.get("boon_name", "?"), "（效果将在后续里程碑实现）")
+
+
+# ===== 御兽流 =====
+
+## 召唤一只灵狼
+func summon_spirit_wolf() -> void:
+	var wolf := SPIRIT_WOLF_SCENE.instantiate()
+	# 添加到当前场景（玩家的父节点下）
+	get_parent().add_child(wolf)
+	# 位置设在玩家附近，带一点随机偏移避免多只重叠
+	wolf.global_position = global_position + Vector2(
+		randf_range(-40.0, 40.0), randf_range(-40.0, 40.0)
+	)
+	# 绑定主人
+	if wolf.has_method("setup"):
+		wolf.setup(self)
+	# 记录并按当前攻速倍率更新
+	summoned_wolves.append(wolf)
+	update_wolf_attack_speed()
+
+
+## 把当前攻速倍率同步到所有存活灵狼
+func update_wolf_attack_speed() -> void:
+	for wolf in summoned_wolves:
+		if is_instance_valid(wolf):
+			wolf.attack_speed_multiplier = beast_attack_speed_multiplier
+
+
+## 是否还有存活的灵狼
+func has_alive_wolf() -> bool:
+	for wolf in summoned_wolves:
+		if is_instance_valid(wolf):
+			return true
+	return false
+
+
+## 玩家统一受伤入口（妖兽攻击经此处理，便于灵兽护主减伤）
+func receive_damage(amount: int) -> void:
+	var final_damage: int = amount
+	# 灵兽护主：拥有存活灵狼时分担部分伤害
+	if beast_guard_enabled and has_alive_wolf():
+		var reduced: int = int(round(amount * beast_guard_ratio))
+		final_damage = amount - reduced
+		print("灵兽护主，减免伤害：", reduced)
+	vitals.take_damage(final_damage)
 
 
 # ===== 气血组件信号回调 =====

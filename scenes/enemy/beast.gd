@@ -72,10 +72,14 @@ func _try_attack() -> void:
 	if _attack_timer > 0.0:
 		return
 
-	# 获取玩家的 Vitals 子节点并造成伤害
-	var player_vitals: Vitals = _player.get_node_or_null("Vitals") as Vitals
-	if player_vitals != null:
-		player_vitals.take_damage(attack_damage)
+	# 优先走玩家统一受伤入口 receive_damage（便于御兽流灵兽护主减伤）
+	if _player.has_method("receive_damage"):
+		_player.receive_damage(attack_damage)
+	else:
+		# 退回：直接对玩家 Vitals 造成伤害
+		var player_vitals: Vitals = _player.get_node_or_null("Vitals") as Vitals
+		if player_vitals != null:
+			player_vitals.take_damage(attack_damage)
 
 	# 重置冷却
 	_attack_timer = attack_cooldown
