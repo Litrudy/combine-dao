@@ -77,6 +77,8 @@ shape = SubResource("RectangleShape2D_y2vg1")
 color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
 polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
 
+[node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
+
 [node name="Beast" parent="." unique_id=1619129642 instance=ExtResource("2_y2vg1")]
 position = Vector2(178, -238)
 
@@ -86,8 +88,6 @@ position = Vector2(311, 209)
 [node name="Beast3" parent="." unique_id=748534951 instance=ExtResource("2_y2vg1")]
 position = Vector2(200, 0)
 motion_mode = 1
-
-[node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
 
 [node name="Beast4" parent="." unique_id=582597048 instance=ExtResource("2_y2vg1")]
 position = Vector2(-283, -226)

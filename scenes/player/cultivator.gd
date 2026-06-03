@@ -26,6 +26,8 @@ var cultivation_exp: int = 0
 var cultivation_exp_required: int = 3
 ## 修炼层数
 var cultivation_level: int = 1
+## 已获得的机缘 id 列表（用于前置筛选与去重）
+var acquired_boon_ids: Array[String] = []
 
 ## 剑气流：剑气伤害加成（由机缘累加）
 var sword_damage_bonus: int = 0
@@ -119,6 +121,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		_release_sword_qi()
 		return
 
+	# R 键（breakthrough）：可突破时弹出机缘三选一
+	if event.is_action_pressed("breakthrough"):
+		try_breakthrough()
+		return
+
 	# Q 键：在鼠标位置释放毒雾
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Q:
 		cast_poison_mist()
@@ -161,32 +168,29 @@ func _release_sword_qi() -> void:
 	_attack_timer = attack_cooldown
 
 
-# ===== 修为 / 机缘 =====
+# ===== 修为 / 突破 / 机缘 =====
 
 ## 获得修为（由妖兽死亡等外部来源调用）
 func gain_cultivation_exp(amount: int) -> void:
-	# 正在选择机缘时不再累计，避免重复触发
-	if _choosing_boon:
-		return
-
-	cultivation_exp += amount
+	# 修为可溢出，但最多只能超过当前需求 1 点
+	var cap: int = cultivation_exp_required + 1
+	cultivation_exp = min(cultivation_exp + amount, cap)
 	print("获得修为：", amount, "，当前修为：", cultivation_exp, " / ", cultivation_exp_required)
 
-	# 修为达到突破所需值，触发机缘三选一
-	if cultivation_exp >= cultivation_exp_required:
-		_trigger_boon_choice()
+	# 达到突破条件只提示，不自动弹面板（需玩家按 R）
+	if can_breakthrough():
+		print("修为已满，按 R 进行突破")
 
 
-## 查找并连接机缘选择面板
-func _connect_boon_panel() -> void:
-	_boon_panel = get_tree().get_first_node_in_group("boon_choice_panel")
-	if _boon_panel != null and not _boon_panel.boon_selected.is_connected(_on_boon_selected):
-		_boon_panel.boon_selected.connect(_on_boon_selected)
+## 是否处于可突破状态
+func can_breakthrough() -> bool:
+	return cultivation_exp >= cultivation_exp_required
 
 
-## 触发机缘三选一
-func _trigger_boon_choice() -> void:
-	if _choosing_boon:
+## 尝试突破（由 R 键触发）：满足条件则弹出机缘三选一
+func try_breakthrough() -> void:
+	# 正在选择机缘、或修为不足时不触发
+	if _choosing_boon or not can_breakthrough():
 		return
 
 	# 兜底：若尚未连接面板，再尝试查找一次
@@ -196,23 +200,47 @@ func _trigger_boon_choice() -> void:
 		push_warning("未找到机缘选择面板（BoonChoicePanel），无法弹出三选一")
 		return
 
-	# 进入选择状态，封锁移动与攻击
+	# 根据已获得机缘筛选可选机缘
+	var boons: Array = _boon_manager.roll_boons(acquired_boon_ids, 3)
+	if boons.is_empty():
+		# 没有可选机缘：不卡死游戏，仅提示
+		print("当前没有可选机缘")
+		return
+
+	# 进入选择状态，封锁移动 / 攻击 / 毒雾 / 再次突破
 	_choosing_boon = true
-	var boons: Array = _boon_manager.roll_boons(3)
+	print("开始突破，选择一项机缘")
 	_boon_panel.show_boons(boons)
+
+
+## 查找并连接机缘选择面板
+func _connect_boon_panel() -> void:
+	_boon_panel = get_tree().get_first_node_in_group("boon_choice_panel")
+	if _boon_panel != null and not _boon_panel.boon_selected.is_connected(_on_boon_selected):
+		_boon_panel.boon_selected.connect(_on_boon_selected)
 
 
 ## 机缘被选择后的回调
 func _on_boon_selected(boon: Dictionary) -> void:
 	# 应用效果（具体效果与提示由 apply_boon 处理）
 	apply_boon(boon)
+	# 记录已获得机缘，供前置筛选与去重
+	var id: String = boon.get("id", "")
+	if id != "" and not id in acquired_boon_ids:
+		acquired_boon_ids.append(id)
 
-	# 突破：层数 +1，修为清零（所需修为暂保持不变，方便测试）
-	cultivation_level += 1
-	cultivation_exp = 0
+	# 完成突破结算
+	complete_breakthrough_after_boon_selected()
 
 	# 恢复移动与攻击
 	_choosing_boon = false
+
+
+## 选择机缘后完成突破：层数 +1，修为不清零，需求 +3
+func complete_breakthrough_after_boon_selected() -> void:
+	cultivation_level += 1
+	cultivation_exp_required += 3
+	print("突破完成，当前修为：", cultivation_exp, " / ", cultivation_exp_required)
 
 
 ## 根据机缘 id 应用效果（M1 任务 7：实现剑气流三个机缘）
