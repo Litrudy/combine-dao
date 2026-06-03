@@ -23,8 +23,12 @@ var cultivation_exp_required: int = 3
 ## 修炼层数
 var cultivation_level: int = 1
 
-## 剑气伤害加成（由机缘累加）
+## 剑气流：剑气伤害加成（由机缘累加）
 var sword_damage_bonus: int = 0
+## 剑气流：剑气额外穿透次数
+var sword_pierce_bonus: int = 0
+## 剑气流：是否启用残血斩杀
+var sword_execute_enabled: bool = false
 
 ## 攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
@@ -110,8 +114,10 @@ func _release_sword_qi() -> void:
 	var sword_qi := SwordQiScene.instantiate()
 	sword_qi.global_position = global_position
 	sword_qi.direction = direction
-	# 叠加机缘提供的剑气伤害加成
+	# 叠加剑气流机缘效果：伤害、穿透、斩杀
 	sword_qi.damage += sword_damage_bonus
+	sword_qi.pierce_remaining = sword_pierce_bonus
+	sword_qi.execute_enabled = sword_execute_enabled
 	# 添加到场景树（挂到父节点下，使剑气独立于玩家移动）
 	get_parent().add_child(sword_qi)
 
@@ -162,8 +168,8 @@ func _trigger_boon_choice() -> void:
 
 ## 机缘被选择后的回调
 func _on_boon_selected(boon: Dictionary) -> void:
+	# 应用效果（具体效果与提示由 apply_boon 处理）
 	apply_boon(boon)
-	print("已获得机缘：", boon.get("boon_name", "?"))
 
 	# 突破：层数 +1，修为清零（所需修为暂保持不变，方便测试）
 	cultivation_level += 1
@@ -173,29 +179,27 @@ func _on_boon_selected(boon: Dictionary) -> void:
 	_choosing_boon = false
 
 
-## 根据机缘的 effect_type 应用效果
+## 根据机缘 id 应用效果（M1 任务 7：实现剑气流三个机缘）
 func apply_boon(boon: Dictionary) -> void:
-	var effect_type: String = boon.get("effect_type", "")
-	var value: float = float(boon.get("effect_value", 0))
+	var id: String = boon.get("id", "")
 
-	match effect_type:
-		"sword_damage_bonus":
-			# 增加剑气伤害
-			sword_damage_bonus += int(value)
-		"speed_bonus":
-			# 增加移动速度
-			speed += value
-		"max_hp_bonus":
-			# 增加气血上限，并同步补满新增的气血
-			vitals.max_qi_blood += int(value)
-			vitals.current_qi_blood += int(value)
-			max_qi_blood = vitals.max_qi_blood
-		"attack_cooldown_bonus":
-			# 减少攻击冷却（下限保护，避免过低）
-			attack_cooldown = max(attack_cooldown - value, 0.05)
+	match id:
+		# ===== 剑气流 =====
+		"sword_qi_basic":
+			# 基础剑气：剑气伤害 +6
+			sword_damage_bonus += 6
+			print("已获得机缘：基础剑气，剑气伤害 +6")
+		"sword_qi_pierce":
+			# 剑气穿透：额外穿透次数 +2
+			sword_pierce_bonus += 2
+			print("已获得机缘：剑气穿透，穿透次数 +2")
+		"sword_execute":
+			# 残血斩杀：开启斩杀低血敌人
+			sword_execute_enabled = true
+			print("已获得机缘：残血斩杀，剑气可斩杀低于 20% 气血的敌人")
 		_:
-			# 其余效果（穿透 / 斩杀 / 御兽 / 毒系）留待后续里程碑实现
-			print("（机缘效果暂未实现，留待后续里程碑：", effect_type, "）")
+			# 御兽流 / 毒蛊流留待后续里程碑实现
+			print("已获得机缘：", boon.get("boon_name", "?"), "（效果将在后续里程碑实现）")
 
 
 # ===== 气血组件信号回调 =====

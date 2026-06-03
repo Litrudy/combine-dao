@@ -20,32 +20,32 @@ class_name BoonManager
 ## 返回 M1 全部 9 个机缘数据（每次返回新数组，避免外部修改污染）
 func get_all_boons() -> Array[Dictionary]:
 	return [
-		# ===== 剑修流派 =====
+		# ===== 剑气流 =====
 		{
-			"id": "sword_basic",
+			"id": "sword_qi_basic",
 			"boon_name": "基础剑气",
-			"description": "剑气伤害提升。",
-			"school_tags": ["剑修"],
+			"description": "剑气伤害 +6。",
+			"school_tags": ["剑气流"],
 			"effect_type": "sword_damage_bonus",
-			"effect_value": 5,
+			"effect_value": 6,
 		},
 		{
-			"id": "sword_pierce",
+			"id": "sword_qi_pierce",
 			"boon_name": "剑气穿透",
-			"description": "剑气可贯穿敌人。",
-			"school_tags": ["剑修"],
-			"effect_type": "sword_pierce",
-			"effect_value": 1,
+			"description": "剑气可额外穿透 2 个敌人。",
+			"school_tags": ["剑气流"],
+			"effect_type": "sword_pierce_bonus",
+			"effect_value": 2,
 		},
 		{
 			"id": "sword_execute",
 			"boon_name": "残血斩杀",
-			"description": "对残血妖兽造成斩杀。",
-			"school_tags": ["剑修"],
-			"effect_type": "execute",
+			"description": "斩杀气血低于 20% 的敌人。",
+			"school_tags": ["剑气流"],
+			"effect_type": "sword_execute",
 			"effect_value": 0.2,
 		},
-		# ===== 御兽流派 =====
+		# ===== 御兽流 =====
 		{
 			"id": "beast_summon_wolf",
 			"boon_name": "召唤灵狼",
@@ -70,29 +70,29 @@ func get_all_boons() -> Array[Dictionary]:
 			"effect_type": "max_hp_bonus",
 			"effect_value": 20,
 		},
-		# ===== 毒道流派 =====
+		# ===== 毒蛊流 =====
 		{
-			"id": "poison_cloud",
+			"id": "poison_mist",
 			"boon_name": "毒雾",
 			"description": "释放毒雾持续伤害。",
-			"school_tags": ["毒道"],
-			"effect_type": "poison_cloud",
+			"school_tags": ["毒蛊流"],
+			"effect_type": "poison_mist",
 			"effect_value": 2,
 		},
 		{
 			"id": "poison_stack",
 			"boon_name": "叠毒",
 			"description": "中毒可叠加层数。",
-			"school_tags": ["毒道"],
+			"school_tags": ["毒蛊流"],
 			"effect_type": "poison_stack",
 			"effect_value": 1,
 		},
 		{
-			"id": "poison_burst",
+			"id": "poison_explosion",
 			"boon_name": "毒爆",
 			"description": "引爆毒层造成爆发伤害。",
-			"school_tags": ["毒道"],
-			"effect_type": "poison_burst",
+			"school_tags": ["毒蛊流"],
+			"effect_type": "poison_explosion",
 			"effect_value": 1,
 		},
 	]

@@ -88,3 +88,12 @@ position = Vector2(200, 0)
 motion_mode = 1
 
 [node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
+
+[node name="Beast4" parent="." unique_id=582597048 instance=ExtResource("2_y2vg1")]
+position = Vector2(-283, -226)
+
+[node name="Beast5" parent="." unique_id=175002150 instance=ExtResource("2_y2vg1")]
+position = Vector2(-183, -246)
+
+[node name="Beast6" parent="." unique_id=1457226512 instance=ExtResource("2_y2vg1")]
+position = Vector2(-73, -261)
