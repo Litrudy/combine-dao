@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://1wml5ru4qfto"]
 
 [ext_resource type="Script" uid="uid://cpaq8a8j5r7cd" path="res://scenes/ally/spirit_wolf.gd" id="1_wolf"]
+[ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wolf"]
+size = Vector2(20, 20)
 
 [node name="SpiritWolf" type="CharacterBody2D" unique_id=377059038]
 script = ExtResource("1_wolf")
@@ -14,3 +16,7 @@ polygon = PackedVector2Array(-10, -10, 10, -10, 10, 10, -10, 10)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1963568670]
 shape = SubResource("RectangleShape2D_wolf")
 debug_color = Color(0, 0.8784314, 0.69803923, 0.41960785)
+
+[node name="Vitals" type="Node" parent="." unique_id=409549418]
+script = ExtResource("2_vitals")
+max_qi_blood = 60

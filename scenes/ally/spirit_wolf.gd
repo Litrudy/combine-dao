@@ -23,12 +23,30 @@ const FOLLOW_DISTANCE: float = 60.0
 ## 当前攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
 
+## 自身气血组件（子节点 Vitals）
+@onready var vitals: Vitals = $Vitals
+
 
 func _ready() -> void:
 	# 漂浮模式，适合俯视角无重力移动
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	# 加入 ally 分组
 	add_to_group("ally")
+	# 气血归零时处理死亡
+	vitals.died.connect(_on_died)
+
+
+## 灵狼受到攻击（由妖兽 / Boss 调用）
+func take_damage(amount: int) -> void:
+	vitals.take_damage(amount)
+
+
+## 死亡回调：通知玩家注销并消失
+func _on_died() -> void:
+	print("灵狼死亡")
+	if is_instance_valid(owner_player) and owner_player.has_method("unregister_wolf"):
+		owner_player.unregister_wolf(self)
+	queue_free()
 
 
 ## 由玩家调用，绑定主人

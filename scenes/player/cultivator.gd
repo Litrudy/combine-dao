@@ -75,6 +75,13 @@ var beast_attack_speed_multiplier: float = 1.0
 var wolf_damage_bonus: int = 0
 ## 御兽流：灵狼移速倍率（机缘「灵狼迅捷」/ 专精「御兽协同」）
 var wolf_move_speed_multiplier: float = 1.0
+## 御兽流：是否已解锁灵狼召唤
+var wolf_unlocked: bool = false
+## 御兽流：最大同时存活灵狼数量
+var max_wolf_count: int = 1
+## 御兽流：E 键召唤冷却（秒）与剩余冷却时间
+var wolf_summon_cooldown: float = 5.0
+var wolf_summon_timer: float = 0.0
 ## 灵狼基础伤害 / 基础移速（用于重算加成）
 const WOLF_BASE_DAMAGE: int = 8
 const WOLF_BASE_MOVE_SPEED: float = 140.0
@@ -142,6 +149,9 @@ func _physics_process(delta: float) -> void:
 	# 毒雾冷却递减
 	if _poison_cast_timer > 0.0:
 		_poison_cast_timer -= delta
+	# 灵狼召唤冷却递减
+	if wolf_summon_timer > 0.0:
+		wolf_summon_timer -= delta
 
 	# 选择机缘期间禁止移动
 	if _choosing_boon:
@@ -175,6 +185,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Q 键：在鼠标位置释放毒雾
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Q:
 		cast_poison_mist()
+		return
+
+	# E 键（summon_wolf）：手动召唤灵狼
+	if event.is_action_pressed("summon_wolf"):
+		_try_summon_wolf()
 		return
 
 	# ===== 临时调试输入：K 受伤 10 点，H 回血 10 点 =====
@@ -374,7 +389,8 @@ func check_specializations() -> void:
 		print("激活专精：御兽协同，灵兽行动能力提升")
 	if school_counts["beast"] >= 3 and not "beast_3" in active_specializations:
 		active_specializations.append("beast_3")
-		# 万兽同心：额外召唤一只灵狼
+		# 万兽同心：灵狼上限 +1 并额外召唤一只
+		max_wolf_count += 1
 		summon_spirit_wolf()
 		print("激活专精：万兽同心，额外灵狼加入战斗")
 
@@ -416,9 +432,11 @@ func apply_boon(boon: Dictionary) -> void:
 			print("已获得机缘：", label, "，剑气可斩杀低气血敌人")
 		# ===== 御兽流 =====
 		"beast_summon_wolf":
-			# 召唤灵狼（解锁型）：不使用倍率
+			# 召唤灵狼（解锁型）：解锁召唤，上限至少 1，立即召唤一只作为反馈
+			wolf_unlocked = true
+			max_wolf_count = max(max_wolf_count, 1)
 			summon_spirit_wolf()
-			print("已获得机缘：", label, "，灵狼加入战斗")
+			print("已获得机缘：", label, "，按 E 可召唤灵狼")
 		"beast_attack_speed":
 			# 灵兽攻速提升
 			beast_attack_speed_multiplier += float(fv)
@@ -468,9 +486,10 @@ func apply_boon(boon: Dictionary) -> void:
 			update_wolf_move_speed()
 			print("已获得机缘：", label, "，灵狼速度提升")
 		"beast_extra_wolf":
-			# 双狼同行（解锁型）：额外召唤一只灵狼
+			# 双狼同行：灵狼上限 +1，未达上限则立即额外召唤一只
+			max_wolf_count += 1
 			summon_spirit_wolf()
-			print("已获得机缘：", label, "，额外灵狼加入战斗")
+			print("已获得机缘：", label, "，灵狼上限 +1")
 		# ===== M2-3 新增：毒蛊流 =====
 		"poison_mist_duration":
 			# 毒雾延绵：持续时间加成
@@ -504,8 +523,28 @@ func _format_boon_label(boon: Dictionary) -> String:
 
 # ===== 御兽流 =====
 
-## 召唤一只灵狼
+## 手动召唤灵狼（E 键），受解锁 / 状态 / 上限 / 冷却限制
+func _try_summon_wolf() -> void:
+	# 未解锁、选择机缘中、通关后均不可召唤
+	if not wolf_unlocked or _choosing_boon or _is_run_cleared():
+		return
+	# 冷却未结束
+	if wolf_summon_timer > 0.0:
+		return
+	# 达到上限
+	if get_alive_wolf_count() >= max_wolf_count:
+		print("灵狼数量已达上限")
+		return
+	summon_spirit_wolf()
+	wolf_summon_timer = wolf_summon_cooldown
+
+
+## 召唤一只灵狼（受最大数量限制）
 func summon_spirit_wolf() -> void:
+	# 达到上限则不召唤
+	if get_alive_wolf_count() >= max_wolf_count:
+		return
+
 	var wolf := SPIRIT_WOLF_SCENE.instantiate()
 	# 添加到当前场景（玩家的父节点下）
 	get_parent().add_child(wolf)
@@ -521,6 +560,34 @@ func summon_spirit_wolf() -> void:
 	wolf.attack_damage = WOLF_BASE_DAMAGE + wolf_damage_bonus
 	wolf.move_speed = WOLF_BASE_MOVE_SPEED * wolf_move_speed_multiplier
 	update_wolf_attack_speed()
+	stats_changed.emit()
+
+
+## 清理已失效的灵狼引用
+func _clean_wolves() -> void:
+	var alive: Array[Node] = []
+	for wolf in summoned_wolves:
+		if is_instance_valid(wolf):
+			alive.append(wolf)
+	summoned_wolves = alive
+
+
+## 当前存活灵狼数量
+func get_alive_wolf_count() -> int:
+	_clean_wolves()
+	return summoned_wolves.size()
+
+
+## 注销灵狼（灵狼死亡时调用）
+func unregister_wolf(wolf: Node) -> void:
+	summoned_wolves.erase(wolf)
+	stats_changed.emit()
+
+
+## 是否处于通关状态（通关面板显示时禁止召唤）
+func _is_run_cleared() -> bool:
+	var panel: Node = get_tree().get_first_node_in_group("clear_panel")
+	return panel != null and panel.visible
 
 
 ## 把当前攻速倍率同步到所有存活灵狼
@@ -646,6 +713,11 @@ func get_hud_data() -> Dictionary:
 		"acquired_boon_names": acquired_boon_names,
 		"active_specialization_names": active_specialization_names,
 		"heavenly_stones": heavenly_stones,
+		# ----- 灵狼 -----
+		"wolf_unlocked": wolf_unlocked,
+		"alive_wolf_count": wolf_count,
+		"max_wolf_count": max_wolf_count,
+		"wolf_summon_cooldown_left": wolf_summon_timer,
 		# ----- 实时调试数值 -----
 		"attack_cooldown": attack_cooldown,
 		"sword_damage_bonus": sword_damage_bonus,

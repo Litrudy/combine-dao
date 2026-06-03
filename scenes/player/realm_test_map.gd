@@ -21,6 +21,8 @@ const ELITE_CHANCE: float = 0.2
 func _ready() -> void:
 	# 通关提示默认隐藏
 	_clear_panel.visible = false
+	# 加入分组，供玩家判断是否处于通关状态（通关后禁止召唤灵狼）
+	_clear_panel.add_to_group("clear_panel")
 	# 收集开局普通小怪，连接离场信号并随机指定精英怪
 	var normal_enemies: Array = get_tree().get_nodes_in_group("normal_enemy")
 	var elite_count: int = 0

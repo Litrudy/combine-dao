@@ -72,26 +72,56 @@ func _physics_process(delta: float) -> void:
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
 
-	# 没有目标则尝试重新获取（玩家可能尚未就绪）
-	if not is_instance_valid(_player):
+	# 选择攻击目标：玩家或更近的灵狼
+	var target: Node2D = _select_target()
+	if not is_instance_valid(target):
 		_acquire_player()
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
 
-	# 计算与玩家的距离
-	var distance: float = global_position.distance_to(_player.global_position)
+	# 计算与目标的距离
+	var distance: float = global_position.distance_to(target.global_position)
 
 	if distance <= attack_range:
 		# 进入攻击范围：停止移动并尝试攻击
 		velocity = Vector2.ZERO
-		_try_attack()
+		_try_attack(target)
 	else:
-		# 否则朝玩家方向移动
-		var direction: Vector2 = global_position.direction_to(_player.global_position)
+		# 否则朝目标方向移动
+		var direction: Vector2 = global_position.direction_to(target.global_position)
 		velocity = direction * move_speed
 
 	move_and_slide()
+
+
+## 选择攻击目标：默认玩家；若有更近的存活灵狼则优先攻击灵狼
+func _select_target() -> Node2D:
+	if not is_instance_valid(_player):
+		_acquire_player()
+
+	# 找最近的存活灵狼
+	var nearest_wolf: Node2D = null
+	var nearest_wolf_dist: float = INF
+	for wolf in get_tree().get_nodes_in_group("ally"):
+		if not is_instance_valid(wolf) or not wolf is Node2D:
+			continue
+		var wolf_vitals: Vitals = wolf.get_node_or_null("Vitals") as Vitals
+		if wolf_vitals != null and wolf_vitals.is_dead():
+			continue
+		var d: float = global_position.distance_to(wolf.global_position)
+		if d < nearest_wolf_dist:
+			nearest_wolf_dist = d
+			nearest_wolf = wolf
+
+	if not is_instance_valid(_player):
+		return nearest_wolf
+	if nearest_wolf == null:
+		return _player
+	# 灵狼比玩家更近时优先攻击灵狼
+	if nearest_wolf_dist < global_position.distance_to(_player.global_position):
+		return nearest_wolf
+	return _player
 
 
 ## 从 "player" 组中获取玩家节点
@@ -99,18 +129,23 @@ func _acquire_player() -> void:
 	_player = get_tree().get_first_node_in_group("player")
 
 
-## 尝试攻击玩家（受冷却限制）
-func _try_attack() -> void:
+## 尝试攻击目标（受冷却限制），目标可能是玩家或灵狼
+func _try_attack(target: Node2D) -> void:
 	# 冷却未结束则不攻击
 	if _attack_timer > 0.0:
 		return
 
-	# 优先走玩家统一受伤入口 receive_damage（便于御兽流灵兽护主减伤）
-	if _player.has_method("receive_damage"):
-		_player.receive_damage(attack_damage)
+	if target.is_in_group("ally"):
+		# 攻击灵狼：直接对其 Vitals 造成伤害
+		var wolf_vitals: Vitals = target.get_node_or_null("Vitals") as Vitals
+		if wolf_vitals != null and not wolf_vitals.is_dead():
+			wolf_vitals.take_damage(attack_damage)
+	elif target.has_method("receive_damage"):
+		# 攻击玩家：优先走统一受伤入口（便于御兽流灵兽护主减伤）
+		target.receive_damage(attack_damage)
 	else:
 		# 退回：直接对玩家 Vitals 造成伤害
-		var player_vitals: Vitals = _player.get_node_or_null("Vitals") as Vitals
+		var player_vitals: Vitals = target.get_node_or_null("Vitals") as Vitals
 		if player_vitals != null:
 			player_vitals.take_damage(attack_damage)
 

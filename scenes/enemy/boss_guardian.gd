@@ -51,6 +51,8 @@ var _charge_time_left: float = 0.0
 var _charge_direction: Vector2 = Vector2.ZERO
 ## 本次冲撞是否已命中玩家（避免重复造成伤害）
 var _charge_hit: bool = false
+## 本次冲撞已命中过的灵狼（避免重复造成伤害）
+var _charge_hit_wolves: Array = []
 ## 是否已进入狂暴（只触发一次）
 var _berserk_triggered: bool = false
 
@@ -125,6 +127,7 @@ func _start_charge() -> void:
 	# 锁定冲撞方向为当前玩家方向
 	_charge_direction = global_position.direction_to(_player.global_position)
 	_charge_hit = false
+	_charge_hit_wolves.clear()
 
 
 ## 冲撞状态：高速突进并判定命中
@@ -139,6 +142,14 @@ func _process_charge(delta: float) -> void:
 			_charge_hit = true
 			_damage_player(charge_damage)
 
+	# 冲撞也会撞到灵狼（每只本次冲撞只受伤一次）
+	for wolf in get_tree().get_nodes_in_group("ally"):
+		if not is_instance_valid(wolf) or wolf in _charge_hit_wolves:
+			continue
+		if global_position.distance_to(wolf.global_position) <= CHARGE_HIT_RADIUS:
+			_charge_hit_wolves.append(wolf)
+			_damage_wolf(wolf, charge_damage)
+
 	# 冲撞结束：回到追踪状态并重置冷却
 	if _charge_time_left <= 0.0:
 		_state = State.CHASE
@@ -152,6 +163,12 @@ func _do_quake() -> void:
 	# 玩家在范围内则受伤
 	if global_position.distance_to(_player.global_position) <= quake_radius:
 		_damage_player(quake_damage)
+	# 范围内的灵狼也受伤
+	for wolf in get_tree().get_nodes_in_group("ally"):
+		if not is_instance_valid(wolf):
+			continue
+		if global_position.distance_to(wolf.global_position) <= quake_radius:
+			_damage_wolf(wolf, quake_damage)
 	# 重置冷却
 	_skill_timer = skill_cooldown
 
@@ -166,6 +183,13 @@ func _check_berserk() -> void:
 		move_speed *= 1.5
 		skill_cooldown *= 0.7
 		print("守墟妖王进入狂暴状态")
+
+
+## 对灵狼造成伤害
+func _damage_wolf(wolf: Node, amount: int) -> void:
+	var wolf_vitals: Vitals = wolf.get_node_or_null("Vitals") as Vitals
+	if wolf_vitals != null and not wolf_vitals.is_dead():
+		wolf_vitals.take_damage(amount)
 
 
 ## 对玩家造成伤害（优先走 receive_damage 入口，便于护主等机制）

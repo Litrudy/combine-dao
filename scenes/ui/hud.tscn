@@ -43,6 +43,10 @@ text = "继续修炼"
 layout_mode = 2
 text = "天道石：0"
 
+[node name="WolfLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "灵狼：未解锁"
+
 [node name="SchoolLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "剑气：0

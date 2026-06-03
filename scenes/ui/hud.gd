@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var _cultivation_label: Label = $Panel/VBoxContainer/CultivationLabel
 @onready var _breakthrough_label: Label = $Panel/VBoxContainer/BreakthroughLabel
 @onready var _stone_label: Label = $Panel/VBoxContainer/StoneLabel
+@onready var _wolf_label: Label = $Panel/VBoxContainer/WolfLabel
 @onready var _school_label: Label = $Panel/VBoxContainer/SchoolLabel
 @onready var _boon_list_label: Label = $Panel/VBoxContainer/BoonListLabel
 @onready var _spec_label: Label = $Panel/VBoxContainer/SpecLabel
@@ -25,6 +26,26 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 按 F1 显隐调试数值行（正式演示时可隐藏）
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F1:
 		_debug_stat_label.visible = not _debug_stat_label.visible
+
+
+func _process(_delta: float) -> void:
+	# 灵狼数量与召唤冷却需要实时刷新（冷却倒计时）
+	if is_instance_valid(_player):
+		_update_wolf_label()
+
+
+## 更新灵狼显示行（数量 / 上限 / 召唤冷却）
+func _update_wolf_label() -> void:
+	if not _player.has_method("get_alive_wolf_count"):
+		return
+	if not _player.wolf_unlocked:
+		_wolf_label.text = "灵狼：未解锁"
+		return
+	var text: String = "灵狼：%d / %d\n按 E 召唤" % [_player.get_alive_wolf_count(), _player.max_wolf_count]
+	var cooldown_left: float = _player.wolf_summon_timer
+	if cooldown_left > 0.0:
+		text += "\n召唤冷却：%.1f 秒" % cooldown_left
+	_wolf_label.text = text
 
 
 ## 查找玩家并连接其状态信号
