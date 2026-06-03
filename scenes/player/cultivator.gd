@@ -29,12 +29,10 @@ var cultivation_exp: int = 0
 var cultivation_exp_required: int = 3
 ## 修炼层数
 var cultivation_level: int = 1
-## 已获得的机缘 id 列表（首次获得才记录，用于兼容旧逻辑）
+## 已获得的机缘 id 列表（机缘唯一获得，用于去重与前置筛选）
 var acquired_boon_ids: Array[String] = []
-## 已获得机缘的次数 { id -> count }（用于叠加上限判断与 HUD 显示）
-var acquired_boon_counts: Dictionary = {}
-## 已获得机缘的品质标签 { id -> "【玄品】基础剑气 ★★★" }（首次获得时记录，便于 HUD 显示，也为 M2-3B 锁定品质预留）
-var acquired_boon_labels: Dictionary = {}
+## 已获得机缘的完整记录（含品阶 / 星级 / 最终数值，供 HUD 显示）
+var acquired_boon_records: Array[Dictionary] = []
 
 ## 各流派已获得机缘数量
 var school_counts: Dictionary = {
@@ -250,8 +248,8 @@ func try_breakthrough() -> void:
 		push_warning("未找到机缘选择面板（BoonChoicePanel），无法弹出三选一")
 		return
 
-	# 根据已获得机缘次数与流派倾向加权筛选可选机缘
-	var boons: Array = _boon_manager.roll_boons(acquired_boon_counts, school_counts, 3)
+	# 根据已获得机缘（去重）与流派倾向加权筛选可选机缘
+	var boons: Array = _boon_manager.roll_boons(acquired_boon_ids, school_counts, 3)
 	if boons.is_empty():
 		# 没有可选机缘：不卡死游戏，仅提示
 		print("当前没有可选机缘")
@@ -272,28 +270,42 @@ func _connect_boon_panel() -> void:
 
 ## 机缘被选择后的回调
 func _on_boon_selected(boon: Dictionary) -> void:
-	# 应用效果（具体效果与提示由 apply_boon 处理）
-	apply_boon(boon)
-	# 记录已获得机缘：首次才进 id 列表，次数始终累加
 	var id: String = boon.get("id", "")
-	if id != "":
-		if not id in acquired_boon_ids:
+
+	# 机缘唯一获得：已拥有则忽略重复效果（正常流程不会出现，仍做安全判断）
+	if id != "" and id in acquired_boon_ids:
+		print("机缘已获得，忽略重复效果：", boon.get("boon_name", "?"))
+	else:
+		# 应用效果（具体效果与提示由 apply_boon 处理）
+		apply_boon(boon)
+		# 记录已获得机缘 id 与完整记录
+		if id != "":
 			acquired_boon_ids.append(id)
-			# 首次获得时记录品质标签（首次品质即锁定，便于 HUD 显示）
-			acquired_boon_labels[id] = _format_boon_label(boon)
-		acquired_boon_counts[id] = int(acquired_boon_counts.get(id, 0)) + 1
+			acquired_boon_records.append(_make_boon_record(boon))
+		# 根据流派标签更新流派计数，并检查专精
+		for tag in boon.get("school_tags", []):
+			if school_counts.has(tag):
+				school_counts[tag] += 1
+		check_specializations()
 
-	# 根据流派标签更新流派计数，并检查专精
-	for tag in boon.get("school_tags", []):
-		if school_counts.has(tag):
-			school_counts[tag] += 1
-	check_specializations()
-
-	# 完成突破结算
+	# 完成突破结算（无论是否重复，玩家本次突破都已完成）
 	complete_breakthrough_after_boon_selected()
 
 	# 恢复移动与攻击
 	_choosing_boon = false
+
+
+## 从机缘数据提取需要长期保存的字段（品阶 / 星级 / 最终数值）
+func _make_boon_record(boon: Dictionary) -> Dictionary:
+	return {
+		"id": boon.get("id", ""),
+		"boon_name": boon.get("boon_name", "?"),
+		"grade_name": boon.get("grade_name", ""),
+		"grade_color": boon.get("grade_color", "#FFFFFF"),
+		"stars": boon.get("stars", 0),
+		"star_text": boon.get("star_text", ""),
+		"final_effect_value": boon.get("final_effect_value", boon.get("effect_value", 0)),
+	}
 
 
 ## 选择机缘后完成突破：层数 +1，修为不清零，需求 +3
@@ -579,19 +591,10 @@ func _on_vitals_died() -> void:
 
 ## 返回 HUD 需要的数据快照（HUD 只读，不修改玩家数据）
 func get_hud_data() -> Dictionary:
-	# 已获得机缘名称列表（带品阶星级，重复机缘附加 ×N）
+	# 已获得机缘名称列表（带品阶星级；机缘唯一获得，不再有 ×N）
 	var acquired_boon_names: Array[String] = []
-	var id_to_name: Dictionary = {}
-	for boon in _boon_manager.get_all_boons():
-		id_to_name[boon.get("id", "")] = boon.get("boon_name", "?")
-	for id in acquired_boon_ids:
-		# 优先用获得时记录的品质标签，缺失时退回纯名称
-		var display_name: String = acquired_boon_labels.get(id, id_to_name.get(id, id))
-		# 获得多次的机缘附加数量后缀，如「【玄品】御剑疾发 ★★★ ×2」
-		var count: int = int(acquired_boon_counts.get(id, 1))
-		if count > 1:
-			display_name += " ×%d" % count
-		acquired_boon_names.append(display_name)
+	for record in acquired_boon_records:
+		acquired_boon_names.append(_format_boon_label(record))
 
 	# 已激活专精名称列表
 	var active_specialization_names: Array[String] = []

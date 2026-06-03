@@ -306,22 +306,22 @@ func get_all_boons() -> Array[Dictionary]:
 	]
 
 
-## 带权重的随机抽取
-## acquired_boon_counts：玩家已获得机缘的次数 { id -> count }
+## 带权重的随机抽取（M2-3B：所有机缘只能获得一次）
+## acquired_boon_ids：玩家已获得机缘 id 列表
 ## school_counts：各流派已获得数量 { sword/beast/poison -> count }
 ## count：期望抽取数量（可选机缘不足时返回实际数量）
-func roll_boons(acquired_boon_counts: Dictionary, school_counts: Dictionary, count: int = 3) -> Array:
-	# 收集候选：满足前置 + 未达 max_stacks
+func roll_boons(acquired_boon_ids: Array, school_counts: Dictionary, count: int = 3) -> Array:
+	# 收集候选：未获得过 + 满足前置
 	var candidates: Array = []
 	for boon in get_all_boons():
-		if not _prerequisites_met(boon, acquired_boon_counts):
+		# 已获得过的机缘不再出现（机缘唯一获得）
+		if boon["id"] in acquired_boon_ids:
 			continue
-		var current: int = int(acquired_boon_counts.get(boon["id"], 0))
-		if current >= int(boon.get("max_stacks", 1)):
+		if not _prerequisites_met(boon, acquired_boon_ids):
 			continue
 		candidates.append({
 			"boon": boon,
-			"weight": _compute_weight(boon, acquired_boon_counts, school_counts),
+			"weight": _compute_weight(boon, acquired_boon_ids, school_counts),
 		})
 
 	# 加权不放回抽取，保证不重复、不死循环
@@ -365,21 +365,21 @@ func _compute_final_value(base_value, final_multiplier: float):
 		return base_value
 
 
-## 前置条件是否全部满足（已获得次数 > 0 视为已获得）
-func _prerequisites_met(boon: Dictionary, acquired_boon_counts: Dictionary) -> bool:
+## 前置条件是否全部满足（前置机缘需已在 acquired_boon_ids 中）
+func _prerequisites_met(boon: Dictionary, acquired_boon_ids: Array) -> bool:
 	for prereq in boon.get("prerequisites", []):
-		if int(acquired_boon_counts.get(prereq, 0)) <= 0:
+		if not prereq in acquired_boon_ids:
 			return false
 	return true
 
 
 ## 计算机缘权重
-func _compute_weight(boon: Dictionary, acquired_boon_counts: Dictionary, school_counts: Dictionary) -> float:
+func _compute_weight(boon: Dictionary, acquired_boon_ids: Array, school_counts: Dictionary) -> float:
 	var weight: float = float(boon.get("base_weight", 100))
 	var id: String = boon["id"]
 
 	# 基础机缘未获得时大幅提高权重
-	if id in BASE_BOONS and int(acquired_boon_counts.get(id, 0)) == 0:
+	if id in BASE_BOONS and not id in acquired_boon_ids:
 		weight *= 3.0
 
 	# 流派倾向：所属流派数量 >= 2 时权重 +50%
