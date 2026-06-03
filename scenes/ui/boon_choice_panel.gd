@@ -23,7 +23,7 @@ func _ready() -> void:
 	# 默认隐藏
 	visible = false
 	# 设置标题文本
-	_title.text = "请选择机缘"
+	_title.text = "请选择突破方向"
 	# 加入分组，方便玩家脚本查找
 	add_to_group("boon_choice_panel")
 

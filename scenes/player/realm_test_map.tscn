@@ -3,7 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
 [ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
 [ext_resource type="PackedScene" uid="uid://brxx56mq7grp5" path="res://scenes/ui/boon_choice_panel.tscn" id="3_boonui"]
-[ext_resource type="Script" path="res://scenes/player/realm_test_map.gd" id="5_map"]
+[ext_resource type="Script" uid="uid://cchcqvgciqawd" path="res://scenes/player/realm_test_map.gd" id="5_map"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -26,6 +26,34 @@ size = Vector2(32, 600)
 
 [node name="RealmTestMap" type="Node2D" unique_id=1610993027]
 script = ExtResource("5_map")
+
+[node name="ClearPanel" type="CanvasLayer" parent="." unique_id=1745435692]
+layer = 20
+visible = false
+
+[node name="Panel" type="Panel" parent="ClearPanel" unique_id=1560952098]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -90.0
+offset_right = 200.0
+offset_bottom = 90.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="ClearPanel/Panel" unique_id=1685315034]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "秘境试炼完成
+按 Enter 重新开始"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Cultivator" parent="." unique_id=655860919 instance=ExtResource("1_c7xc1")]
 motion_mode = 1
