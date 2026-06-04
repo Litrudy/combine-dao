@@ -112,10 +112,16 @@ func _try_attack(target: Node2D) -> void:
 	if _attack_timer > 0.0:
 		return
 
+	# 计算最终伤害：若目标被驭兽鞭标记，则提高伤害
+	var final_damage: int = attack_damage
+	var status: Node = target.get_node_or_null("StatusEffects")
+	if status != null and status.has_method("get_beast_damage_multiplier"):
+		final_damage = int(round(attack_damage * status.get_beast_damage_multiplier()))
+
 	# 调用妖兽的 Vitals 子节点造成伤害
 	var enemy_vitals: Vitals = target.get_node_or_null("Vitals") as Vitals
 	if enemy_vitals != null:
-		enemy_vitals.take_damage(attack_damage)
+		enemy_vitals.take_damage(final_damage)
 
 	# 重置冷却：实际冷却 = 基础冷却 / 攻速倍率
 	var effective_cooldown: float = base_attack_cooldown / max(attack_speed_multiplier, 0.01)

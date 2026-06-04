@@ -47,6 +47,10 @@ text = "天道石：0"
 layout_mode = 2
 text = "灵狼：未解锁"
 
+[node name="PrimaryAttackLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "基础攻击：剑气"
+
 [node name="SchoolLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "剑气：0

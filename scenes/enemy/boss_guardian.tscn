@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scenes/enemy/boss_guardian.gd" id="1_boss"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
+[ext_resource type="Script" path="res://scripts/components/status_effects.gd" id="3_status"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_boss"]
 size = Vector2(48, 48)
@@ -19,3 +20,6 @@ shape = SubResource("RectangleShape2D_boss")
 [node name="Vitals" type="Node" parent="."]
 script = ExtResource("2_vitals")
 max_qi_blood = 300
+
+[node name="StatusEffects" type="Node" parent="."]
+script = ExtResource("3_status")

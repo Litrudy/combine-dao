@@ -8,6 +8,14 @@ extends CanvasLayer
 @onready var _breakthrough_label: Label = $Panel/VBoxContainer/BreakthroughLabel
 @onready var _stone_label: Label = $Panel/VBoxContainer/StoneLabel
 @onready var _wolf_label: Label = $Panel/VBoxContainer/WolfLabel
+@onready var _primary_attack_label: Label = $Panel/VBoxContainer/PrimaryAttackLabel
+
+## 基础攻击类型 -> 中文名
+const ATTACK_NAMES: Dictionary = {
+	"sword_qi": "剑气",
+	"poison_dart": "毒镖",
+	"beast_whip": "驭兽鞭",
+}
 @onready var _school_label: Label = $Panel/VBoxContainer/SchoolLabel
 @onready var _boon_list_label: Label = $Panel/VBoxContainer/BoonListLabel
 @onready var _spec_label: Label = $Panel/VBoxContainer/SpecLabel
@@ -74,6 +82,9 @@ func _refresh() -> void:
 	_breakthrough_label.text = "按 R 突破" if data["can_breakthrough"] else "继续修炼"
 	# 天道石
 	_stone_label.text = "天道石：%d" % data["heavenly_stones"]
+	# 当前基础攻击类型
+	var attack_type: String = data["primary_attack_type"]
+	_primary_attack_label.text = "基础攻击：%s" % ATTACK_NAMES.get(attack_type, attack_type)
 	# 流派进度
 	var sc: Dictionary = data["school_counts"]
 	_school_label.text = "剑气：%d\n御兽：%d\n毒蛊：%d" % [sc["sword"], sc["beast"], sc["poison"]]

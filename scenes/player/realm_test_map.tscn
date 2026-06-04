@@ -108,7 +108,7 @@ shape = SubResource("RectangleShape2D_y2vg1")
 color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
 polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
 
-[node name="HUD" parent="." instance=ExtResource("6_hud")]
+[node name="HUD" parent="." unique_id=978804438 instance=ExtResource("6_hud")]
 
 [node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
 

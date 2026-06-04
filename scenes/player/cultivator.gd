@@ -19,6 +19,9 @@ const SwordQiScene: PackedScene = preload("res://scenes/player/sword_qi.tscn")
 const SPIRIT_WOLF_SCENE: PackedScene = preload("res://scenes/ally/spirit_wolf.tscn")
 ## 毒雾场景，释放时实例化
 const POISON_MIST_SCENE: PackedScene = preload("res://scenes/player/poison_mist.tscn")
+## 毒镖 / 驭兽鞭场景（基础攻击替换）
+const POISON_DART_SCENE: PackedScene = preload("res://scenes/player/poison_dart.tscn")
+const BEAST_WHIP_SCENE: PackedScene = preload("res://scenes/player/beast_whip.tscn")
 
 var qi_blood: int
 var mana: int
@@ -75,6 +78,12 @@ var beast_attack_speed_multiplier: float = 1.0
 var wolf_damage_bonus: int = 0
 ## 御兽流：灵狼移速倍率（机缘「灵狼迅捷」/ 专精「御兽协同」）
 var wolf_move_speed_multiplier: float = 1.0
+## 基础攻击类型：sword_qi（剑气）/ poison_dart（毒镖）/ beast_whip（驭兽鞭）
+var primary_attack_type: String = "sword_qi"
+## 是否已解锁毒镖 / 驭兽鞭
+var poison_dart_unlocked: bool = false
+var beast_whip_unlocked: bool = false
+
 ## 御兽流：是否已解锁灵狼召唤
 var wolf_unlocked: bool = false
 ## 御兽流：最大同时存活灵狼数量
@@ -172,9 +181,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _choosing_boon:
 		return
 
-	# 鼠标左键（attack_primary）释放剑气
+	# 鼠标左键（attack_primary）：基础攻击
 	if event.is_action_pressed("attack_primary"):
-		_release_sword_qi()
+		cast_primary_attack()
 		return
 
 	# R 键（breakthrough）：可突破时弹出机缘三选一
@@ -202,19 +211,36 @@ func _unhandled_input(event: InputEvent) -> void:
 				vitals.heal(10)
 
 
-## 释放剑气（鼠标左键），受攻击冷却限制
-func _release_sword_qi() -> void:
-	# 冷却未结束则不释放
+## 基础攻击（鼠标左键）：根据 primary_attack_type 分发，受冷却与状态限制
+func cast_primary_attack() -> void:
+	# 通关后禁止攻击
+	if _is_run_cleared():
+		return
+	# 冷却未结束则不攻击
 	if _attack_timer > 0.0:
 		return
 
 	# 方向：玩家当前位置 → 鼠标世界坐标
 	var direction: Vector2 = (get_global_mouse_position() - global_position).normalized()
-	# 若鼠标恰好与玩家重合导致方向为零，则跳过本次释放
+	# 若鼠标恰好与玩家重合导致方向为零，则跳过本次攻击
 	if direction == Vector2.ZERO:
 		return
 
-	# 实例化剑气，从玩家当前位置生成，朝鼠标方向飞行
+	# 按基础攻击类型分发
+	match primary_attack_type:
+		"poison_dart":
+			cast_poison_dart(direction)
+		"beast_whip":
+			cast_beast_whip(direction)
+		_:
+			cast_sword_qi(direction)
+
+	# 重置冷却
+	_attack_timer = attack_cooldown
+
+
+## 释放剑气（默认基础攻击）
+func cast_sword_qi(direction: Vector2) -> void:
 	var sword_qi := SwordQiScene.instantiate()
 	sword_qi.global_position = global_position
 	sword_qi.direction = direction
@@ -227,8 +253,26 @@ func _release_sword_qi() -> void:
 	# 添加到场景树（挂到父节点下，使剑气独立于玩家移动）
 	get_parent().add_child(sword_qi)
 
-	# 重置冷却
-	_attack_timer = attack_cooldown
+
+## 释放毒镖（毒蛊基础攻击）
+func cast_poison_dart(direction: Vector2) -> void:
+	var dart := POISON_DART_SCENE.instantiate()
+	dart.global_position = global_position
+	dart.direction = direction
+	# 毒镖基础伤害与毒伤受毒蛊加成影响
+	dart.damage += poison_damage_bonus
+	dart.poison_tick_damage += poison_damage_bonus
+	# 毒层上限取毒镖自身默认值与玩家叠毒上限的较大者
+	dart.poison_max_stack = max(dart.poison_max_stack, poison_max_stack)
+	get_parent().add_child(dart)
+
+
+## 释放驭兽鞭（御兽基础攻击）
+func cast_beast_whip(direction: Vector2) -> void:
+	var whip := BEAST_WHIP_SCENE.instantiate()
+	whip.global_position = global_position
+	whip.direction = direction
+	get_parent().add_child(whip)
 
 
 # ===== 修为 / 突破 / 机缘 =====
@@ -503,6 +547,17 @@ func apply_boon(boon: Dictionary) -> void:
 			# 蚀骨毒：毒雾每跳伤害加成
 			poison_damage_bonus += int(fv)
 			print("已获得机缘：", label, "，毒雾伤害 +", int(fv))
+		# ===== M2-3E 基础攻击替换 =====
+		"poison_dart_art":
+			# 毒镖术：左键基础攻击替换为毒镖
+			poison_dart_unlocked = true
+			primary_attack_type = "poison_dart"
+			print("已获得机缘：", label, "，基础攻击已替换为毒镖")
+		"beast_whip_art":
+			# 驭兽鞭：左键基础攻击替换为驭兽鞭
+			beast_whip_unlocked = true
+			primary_attack_type = "beast_whip"
+			print("已获得机缘：", label, "，基础攻击已替换为驭兽鞭")
 		_:
 			# 未知机缘，兜底提示
 			print("已获得机缘：", label, "（效果未实现）")
@@ -713,6 +768,8 @@ func get_hud_data() -> Dictionary:
 		"acquired_boon_names": acquired_boon_names,
 		"active_specialization_names": active_specialization_names,
 		"heavenly_stones": heavenly_stones,
+		# ----- 基础攻击 -----
+		"primary_attack_type": primary_attack_type,
 		# ----- 灵狼 -----
 		"wolf_unlocked": wolf_unlocked,
 		"alive_wolf_count": wolf_count,

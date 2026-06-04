@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://bv34p5uvt6tws" path="res://scenes/enemy/beast.gd" id="1_s6uuk"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
+[ext_resource type="Script" path="res://scripts/components/status_effects.gd" id="3_status"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5m1xp"]
 size = Vector2(28, 28)
@@ -20,3 +21,6 @@ shape = SubResource("RectangleShape2D_5m1xp")
 [node name="Vitals" type="Node" parent="." unique_id=158629325]
 script = ExtResource("2_vitals")
 max_qi_blood = 60
+
+[node name="StatusEffects" type="Node" parent="." unique_id=158629326]
+script = ExtResource("3_status")

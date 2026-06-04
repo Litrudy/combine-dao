@@ -303,6 +303,33 @@ func get_all_boons() -> Array[Dictionary]:
 			"max_stacks": 3,
 			"current_stacks": 0,
 		},
+		# ===== M2-3E 基础攻击替换 =====
+		{
+			"id": "poison_dart_art",
+			"boon_name": "毒镖术",
+			"description": "将左键基础攻击替换为毒镖。毒镖基础伤害较低，但可叠加毒伤。",
+			"school_tags": ["poison"],
+			"effect_type": "replace_primary_attack",
+			"effect_value": "poison_dart",
+			"prerequisites": [],
+			"rarity": "common",
+			"base_weight": 80,
+			"max_stacks": 1,
+			"current_stacks": 0,
+		},
+		{
+			"id": "beast_whip_art",
+			"boon_name": "驭兽鞭",
+			"description": "将左键基础攻击替换为驭兽鞭。驭兽鞭造成短距离范围伤害，并标记敌人，使灵狼对其伤害提升。",
+			"school_tags": ["beast"],
+			"effect_type": "replace_primary_attack",
+			"effect_value": "beast_whip",
+			"prerequisites": [],
+			"rarity": "common",
+			"base_weight": 80,
+			"max_stacks": 1,
+			"current_stacks": 0,
+		},
 	]
 
 
