@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scenes/ui/boon_choice_panel.gd" id="1_boonui"]
 
 [node name="BoonChoicePanel" type="CanvasLayer"]
+process_mode = 3
 layer = 10
 script = ExtResource("1_boonui")
 
@@ -20,10 +21,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -240.0
-offset_top = -220.0
-offset_right = 240.0
-offset_bottom = 220.0
+offset_left = -260.0
+offset_top = -270.0
+offset_right = 260.0
+offset_bottom = 270.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -38,11 +39,21 @@ offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="TitleLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "请选择机缘"
+horizontal_alignment = 1
+
+[node name="CurrentAttackLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "当前基础攻击：剑气"
+horizontal_alignment = 1
+
+[node name="HeavenlyStoneLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "天道石：0"
 horizontal_alignment = 1
 
 [node name="Button0" type="Button" parent="Panel/VBoxContainer"]
@@ -67,3 +78,8 @@ text = "刷新机缘（消耗 1 天道石）"
 [node name="UpgradeGradeButton" type="Button" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "提升品阶（消耗 6 天道石）"
+
+[node name="HintLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "可用天道石刷新机缘或提升当前机缘品阶"
+horizontal_alignment = 1

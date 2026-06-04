@@ -17,11 +17,30 @@ var _player: Node = null
 
 
 func _ready() -> void:
+	# 暂停时仍可处理输入与按钮（Tab 关闭、切换基础攻击、装备技能）
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	# 默认隐藏并加入分组，供玩家脚本查找
 	visible = false
 	add_to_group("build_panel")
 	# 延迟一帧连接玩家
 	_connect_player.call_deferred()
+
+
+## 由本面板统一处理 Tab：暂停时玩家输入被冻结，仍能靠此处关闭构筑页
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("open_build_panel"):
+		if visible:
+			close()
+		elif not _is_boon_panel_open():
+			# 机缘三选一打开时不允许打开构筑页
+			open()
+		get_viewport().set_input_as_handled()
+
+
+## 机缘选择面板是否打开
+func _is_boon_panel_open() -> bool:
+	var panel: Node = get_tree().get_first_node_in_group("boon_choice_panel")
+	return panel != null and panel.visible
 
 
 ## 查找玩家并连接状态信号
@@ -38,7 +57,7 @@ func _on_stats_changed() -> void:
 		_refresh()
 
 
-## 切换显隐（由玩家按 Tab 调用）
+## 切换显隐（保留为公开方法，Tab 由本面板 _unhandled_input 直接调用 open/close）
 func toggle() -> void:
 	if visible:
 		close()
@@ -46,17 +65,20 @@ func toggle() -> void:
 		open()
 
 
-## 打开并刷新
+## 打开并刷新，同时暂停游戏
 func open() -> void:
 	if _player == null:
 		_connect_player()
 	_refresh()
 	visible = true
+	get_tree().paused = true
 
 
-## 关闭
+## 关闭；若没有其它阻塞性 UI（机缘三选一）打开，则恢复游戏
 func close() -> void:
 	visible = false
+	if not _is_boon_panel_open():
+		get_tree().paused = false
 
 
 ## 根据玩家构筑数据刷新页面

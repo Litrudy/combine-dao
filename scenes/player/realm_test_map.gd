@@ -42,6 +42,8 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	# 通关后按 Enter 重新开始本局
 	if run_completed and event.is_action_pressed("ui_accept"):
+		# 暂停状态会跨场景重载保留，重开前先恢复，避免新局一开始即暂停
+		get_tree().paused = false
 		get_tree().reload_current_scene()
 
 
@@ -96,5 +98,7 @@ func _on_boss_defeated() -> void:
 		return
 	run_completed = true
 	print("秘境试炼完成")
+	# 通关时确保游戏未处于暂停（防止此前面板暂停残留），以便 Enter 重开
+	get_tree().paused = false
 	# 显示通关提示
 	_clear_panel.visible = true

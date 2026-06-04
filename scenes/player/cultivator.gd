@@ -120,8 +120,7 @@ var max_wolf_count: int = 1
 ## 御兽流：E 键召唤冷却（秒）与剩余冷却时间
 var wolf_summon_cooldown: float = 5.0
 var wolf_summon_timer: float = 0.0
-## 灵狼基础伤害 / 基础移速（用于重算加成）
-const WOLF_BASE_DAMAGE: int = 8
+## 灵狼基础移速（用于重算移速加成；灵狼伤害改由 get_wolf_damage() 灵根公式驱动）
 const WOLF_BASE_MOVE_SPEED: float = 140.0
 ## 御兽流：是否启用灵兽护主
 var beast_guard_enabled: bool = false
@@ -226,13 +225,11 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Tab：切换构筑页（机缘选择面板打开时不允许打开）
-	if event.is_action_pressed("open_build_panel"):
-		if not _choosing_boon:
-			_toggle_build_panel()
-		return
+	# 注：Tab 构筑页的开关由 BuildPanel 自身处理（其 process_mode 为 ALWAYS，
+	# 暂停时仍可响应 Tab 关闭）；此处不再处理 open_build_panel。
 
 	# 选择机缘 / 构筑页 / 通关页 打开期间禁止其他操作
+	# （暂停时本回调本就不会触发，此处为额外保险）
 	if _choosing_boon or _is_build_panel_open() or _is_run_cleared():
 		return
 
@@ -738,13 +735,6 @@ func cast_skill_from_slot(slot_key: String) -> void:
 func _is_build_panel_open() -> bool:
 	var panel: Node = get_tree().get_first_node_in_group("build_panel")
 	return panel != null and panel.visible
-
-
-## 切换构筑页显隐
-func _toggle_build_panel() -> void:
-	var panel: Node = get_tree().get_first_node_in_group("build_panel")
-	if panel != null and panel.has_method("toggle"):
-		panel.toggle()
 
 
 # ===== 御兽流 =====
