@@ -26,6 +26,35 @@ const BEAST_WHIP_SCENE: PackedScene = preload("res://scenes/player/beast_whip.ts
 var qi_blood: int
 var mana: int
 
+## ===== 灵根（开局随机，总和为 10，每项至少 1）=====
+var sword_root: int = 1
+var poison_root: int = 1
+var beast_root: int = 1
+
+## ===== 技能栏系统 =====
+## 已解锁的基础攻击（左键）
+var unlocked_primary_attacks: Array[String] = ["sword_qi"]
+## 已解锁的主动技能 id
+var unlocked_skills: Array[String] = []
+## 技能槽位绑定（Q / E / F -> 技能 id，空字符串表示空）
+var skill_slots: Dictionary = {
+	"Q": "",
+	"E": "",
+	"F": "",
+}
+
+## 技能 id -> 显示名
+const SKILL_NAMES: Dictionary = {
+	"poison_mist": "毒雾",
+	"summon_wolf": "召唤灵狼",
+}
+## 基础攻击 id -> 显示名
+const PRIMARY_ATTACK_NAMES: Dictionary = {
+	"sword_qi": "剑气",
+	"poison_dart": "毒镖",
+	"beast_whip": "驭兽鞭",
+}
+
 ## 当前修为
 var cultivation_exp: int = 0
 ## 突破所需修为
@@ -142,6 +171,26 @@ func _ready() -> void:
 	qi_blood = max_qi_blood
 	mana = max_mana
 
+	# 随机生成灵根
+	_init_spiritual_roots()
+
+
+## 随机生成三种灵根：各保底 1 点，剩余 7 点随机分配，总和为 10
+func _init_spiritual_roots() -> void:
+	sword_root = 1
+	poison_root = 1
+	beast_root = 1
+	var roots: Array[String] = ["sword", "poison", "beast"]
+	for _i in 7:
+		match roots[randi() % roots.size()]:
+			"sword":
+				sword_root += 1
+			"poison":
+				poison_root += 1
+			"beast":
+				beast_root += 1
+	print("剑灵根：", sword_root, "，毒灵根：", poison_root, "，兽灵根：", beast_root)
+
 	# 连接气血组件的三个信号
 	vitals.damaged.connect(_on_vitals_damaged)
 	vitals.healed.connect(_on_vitals_healed)
@@ -162,8 +211,8 @@ func _physics_process(delta: float) -> void:
 	if wolf_summon_timer > 0.0:
 		wolf_summon_timer -= delta
 
-	# 选择机缘期间禁止移动
-	if _choosing_boon:
+	# 选择机缘 / 构筑页打开期间禁止移动
+	if _choosing_boon or _is_build_panel_open():
 		velocity = Vector2.ZERO
 		move_and_slide()
 		return
@@ -177,8 +226,14 @@ func _physics_process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# 选择机缘期间禁止一切操作
-	if _choosing_boon:
+	# Tab：切换构筑页（机缘选择面板打开时不允许打开）
+	if event.is_action_pressed("open_build_panel"):
+		if not _choosing_boon:
+			_toggle_build_panel()
+		return
+
+	# 选择机缘 / 构筑页 / 通关页 打开期间禁止其他操作
+	if _choosing_boon or _is_build_panel_open() or _is_run_cleared():
 		return
 
 	# 鼠标左键（attack_primary）：基础攻击
@@ -191,14 +246,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		try_breakthrough()
 		return
 
-	# Q 键：在鼠标位置释放毒雾
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Q:
-		cast_poison_mist()
+	# Q / E / F：释放对应技能栏技能
+	if event.is_action_pressed("skill_q"):
+		cast_skill_from_slot("Q")
 		return
-
-	# E 键（summon_wolf）：手动召唤灵狼
-	if event.is_action_pressed("summon_wolf"):
-		_try_summon_wolf()
+	if event.is_action_pressed("skill_e"):
+		cast_skill_from_slot("E")
+		return
+	if event.is_action_pressed("skill_f"):
+		cast_skill_from_slot("F")
 		return
 
 	# ===== 临时调试输入：K 受伤 10 点，H 回血 10 点 =====
@@ -244,8 +300,8 @@ func cast_sword_qi(direction: Vector2) -> void:
 	var sword_qi := SwordQiScene.instantiate()
 	sword_qi.global_position = global_position
 	sword_qi.direction = direction
-	# 叠加剑气流机缘效果：伤害、穿透、斩杀
-	sword_qi.damage += sword_damage_bonus
+	# 剑气伤害由剑灵根驱动（含机缘加成）
+	sword_qi.damage = get_sword_damage()
 	sword_qi.pierce_remaining = sword_pierce_bonus
 	sword_qi.execute_enabled = sword_execute_enabled
 	sword_qi.execute_threshold = sword_execute_threshold
@@ -259,9 +315,8 @@ func cast_poison_dart(direction: Vector2) -> void:
 	var dart := POISON_DART_SCENE.instantiate()
 	dart.global_position = global_position
 	dart.direction = direction
-	# 毒镖基础伤害与毒伤受毒蛊加成影响
-	dart.damage += poison_damage_bonus
-	dart.poison_tick_damage += poison_damage_bonus
+	# 毒镖直接伤害保持较低（自身默认值），毒伤由毒灵根驱动
+	dart.poison_tick_damage = get_poison_damage()
 	# 毒层上限取毒镖自身默认值与玩家叠毒上限的较大者
 	dart.poison_max_stack = max(dart.poison_max_stack, poison_max_stack)
 	get_parent().add_child(dart)
@@ -272,7 +327,36 @@ func cast_beast_whip(direction: Vector2) -> void:
 	var whip := BEAST_WHIP_SCENE.instantiate()
 	whip.global_position = global_position
 	whip.direction = direction
+	# 驭兽鞭自身伤害由兽灵根驱动（主要价值是驭兽标记）
+	whip.damage = get_beast_whip_damage()
 	get_parent().add_child(whip)
+
+
+# ===== 灵根驱动的基础数值 =====
+
+## 剑气最终伤害 = round(剑灵根 * 1.0) + 剑气伤害加成
+func get_sword_damage() -> int:
+	return int(round(sword_root * 1.0)) + sword_damage_bonus
+
+
+## 毒伤最终值 = round(毒灵根 * 0.5) + 毒伤加成
+func get_poison_damage() -> int:
+	return int(round(poison_root * 0.5)) + poison_damage_bonus
+
+
+## 灵狼最大血量 = round(兽灵根 * 8.0)
+func get_wolf_max_hp() -> int:
+	return int(round(beast_root * 8.0))
+
+
+## 灵狼最终攻击 = round(兽灵根 * 1.2) + 灵狼伤害加成
+func get_wolf_damage() -> int:
+	return int(round(beast_root * 1.2)) + wolf_damage_bonus
+
+
+## 驭兽鞭自身伤害 = round(兽灵根 * 0.6)
+func get_beast_whip_damage() -> int:
+	return int(round(beast_root * 0.6))
 
 
 # ===== 修为 / 突破 / 机缘 =====
@@ -476,11 +560,12 @@ func apply_boon(boon: Dictionary) -> void:
 			print("已获得机缘：", label, "，剑气可斩杀低气血敌人")
 		# ===== 御兽流 =====
 		"beast_summon_wolf":
-			# 召唤灵狼（解锁型）：解锁召唤，上限至少 1，立即召唤一只作为反馈
+			# 召唤灵狼：解锁技能并自动入栏，立即召唤一只作为反馈
 			wolf_unlocked = true
 			max_wolf_count = max(max_wolf_count, 1)
+			unlock_skill("summon_wolf")
 			summon_spirit_wolf()
-			print("已获得机缘：", label, "，按 E 可召唤灵狼")
+			print("已解锁技能：召唤灵狼")
 		"beast_attack_speed":
 			# 灵兽攻速提升
 			beast_attack_speed_multiplier += float(fv)
@@ -492,9 +577,10 @@ func apply_boon(boon: Dictionary) -> void:
 			print("已获得机缘：", label, "，灵兽为玩家分担伤害")
 		# ===== 毒蛊流 =====
 		"poison_mist":
-			# 毒雾（解锁型）：不使用倍率
+			# 毒雾：解锁技能并自动入栏（不再硬编码 Q）
 			poison_mist_unlocked = true
-			print("已获得机缘：", label, "，按 Q 可释放毒雾")
+			unlock_skill("poison_mist")
+			print("已解锁技能：毒雾")
 		"poison_stack":
 			# 叠毒（解锁型）：不使用倍率
 			poison_stack_enabled = true
@@ -549,15 +635,19 @@ func apply_boon(boon: Dictionary) -> void:
 			print("已获得机缘：", label, "，毒雾伤害 +", int(fv))
 		# ===== M2-3E 基础攻击替换 =====
 		"poison_dart_art":
-			# 毒镖术：左键基础攻击替换为毒镖
+			# 毒镖术：解锁并切换基础攻击为毒镖
 			poison_dart_unlocked = true
+			if not "poison_dart" in unlocked_primary_attacks:
+				unlocked_primary_attacks.append("poison_dart")
 			primary_attack_type = "poison_dart"
-			print("已获得机缘：", label, "，基础攻击已替换为毒镖")
+			print("基础攻击已替换为毒镖")
 		"beast_whip_art":
-			# 驭兽鞭：左键基础攻击替换为驭兽鞭
+			# 驭兽鞭：解锁并切换基础攻击为驭兽鞭
 			beast_whip_unlocked = true
+			if not "beast_whip" in unlocked_primary_attacks:
+				unlocked_primary_attacks.append("beast_whip")
 			primary_attack_type = "beast_whip"
-			print("已获得机缘：", label, "，基础攻击已替换为驭兽鞭")
+			print("基础攻击已替换为驭兽鞭")
 		_:
 			# 未知机缘，兜底提示
 			print("已获得机缘：", label, "（效果未实现）")
@@ -574,6 +664,87 @@ func _format_boon_label(boon: Dictionary) -> String:
 	if star_text != "":
 		result += " " + star_text
 	return result
+
+
+# ===== 技能栏系统 =====
+
+## 技能 id -> 显示名
+func get_skill_display_name(skill_id: String) -> String:
+	return SKILL_NAMES.get(skill_id, skill_id)
+
+
+## 基础攻击 id -> 显示名
+func get_primary_attack_display_name(attack_id: String) -> String:
+	return PRIMARY_ATTACK_NAMES.get(attack_id, attack_id)
+
+
+## 切换当前基础攻击（仅限已解锁，供构筑页调用）
+func set_primary_attack(attack_id: String) -> void:
+	if attack_id in unlocked_primary_attacks:
+		primary_attack_type = attack_id
+		stats_changed.emit()
+
+
+## 解锁一个主动技能，并自动装备到第一个空槽
+func unlock_skill(skill_id: String) -> void:
+	if skill_id in unlocked_skills:
+		return
+	unlocked_skills.append(skill_id)
+	auto_equip_skill(skill_id)
+	stats_changed.emit()
+
+
+## 自动把技能装备到第一个空槽（Q→E→F），都满则不动
+func auto_equip_skill(skill_id: String) -> void:
+	# 已装备则不重复
+	for key in skill_slots:
+		if skill_slots[key] == skill_id:
+			return
+	for key in ["Q", "E", "F"]:
+		if skill_slots[key] == "":
+			skill_slots[key] = skill_id
+			return
+
+
+## 手动把技能装备到指定槽位（同一技能不能占多个槽，目标槽位直接覆盖）
+func equip_skill_to_slot(skill_id: String, slot_key: String) -> void:
+	# 未解锁技能不能装备；槽位非法则忽略
+	if not skill_id in unlocked_skills or not skill_slots.has(slot_key):
+		return
+	# 先从其它槽位移除该技能，避免重复占用
+	for key in skill_slots:
+		if skill_slots[key] == skill_id:
+			skill_slots[key] = ""
+	skill_slots[slot_key] = skill_id
+	stats_changed.emit()
+
+
+## 释放某槽位绑定的技能
+func cast_skill_from_slot(slot_key: String) -> void:
+	var skill_id: String = skill_slots.get(slot_key, "")
+	if skill_id == "":
+		print("该技能栏为空")
+		return
+	match skill_id:
+		"poison_mist":
+			cast_poison_mist()
+		"summon_wolf":
+			_try_summon_wolf()
+
+
+# ===== 构筑页（Tab）辅助 =====
+
+## 构筑页是否打开
+func _is_build_panel_open() -> bool:
+	var panel: Node = get_tree().get_first_node_in_group("build_panel")
+	return panel != null and panel.visible
+
+
+## 切换构筑页显隐
+func _toggle_build_panel() -> void:
+	var panel: Node = get_tree().get_first_node_in_group("build_panel")
+	if panel != null and panel.has_method("toggle"):
+		panel.toggle()
 
 
 # ===== 御兽流 =====
@@ -612,7 +783,10 @@ func summon_spirit_wolf() -> void:
 		wolf.setup(self)
 	# 记录并按当前各项加成初始化新灵狼
 	summoned_wolves.append(wolf)
-	wolf.attack_damage = WOLF_BASE_DAMAGE + wolf_damage_bonus
+	# 灵狼血量与攻击由兽灵根驱动
+	if wolf.vitals != null:
+		wolf.vitals.set_max_qi_blood(get_wolf_max_hp(), true)
+	wolf.attack_damage = get_wolf_damage()
 	wolf.move_speed = WOLF_BASE_MOVE_SPEED * wolf_move_speed_multiplier
 	update_wolf_attack_speed()
 	stats_changed.emit()
@@ -656,7 +830,7 @@ func update_wolf_attack_speed() -> void:
 func update_wolf_damage() -> void:
 	for wolf in summoned_wolves:
 		if is_instance_valid(wolf):
-			wolf.attack_damage = WOLF_BASE_DAMAGE + wolf_damage_bonus
+			wolf.attack_damage = get_wolf_damage()
 
 
 ## 把当前移速倍率同步到所有存活灵狼
@@ -698,8 +872,8 @@ func cast_poison_mist() -> void:
 
 	# 实例化毒雾（先设参数，再入场景，确保 _ready 读到正确的持续时间与范围）
 	var mist := POISON_MIST_SCENE.instantiate()
-	# 传入当前毒蛊参数
-	mist.damage_per_second = 3 + poison_damage_bonus
+	# 传入当前毒蛊参数（毒伤由毒灵根驱动）
+	mist.damage_per_second = get_poison_damage()
 	mist.poison_stack_enabled = poison_stack_enabled
 	mist.max_poison_stack = poison_max_stack
 	mist.poison_explosion_enabled = poison_explosion_enabled
@@ -740,23 +914,13 @@ func _on_vitals_died() -> void:
 
 # ===== HUD 数据 =====
 
-## 返回 HUD 需要的数据快照（HUD 只读，不修改玩家数据）
+## 返回 HUD 需要的数据快照（战斗必要信息）
 func get_hud_data() -> Dictionary:
-	# 已获得机缘名称列表（带品阶星级；机缘唯一获得，不再有 ×N）
-	var acquired_boon_names: Array[String] = []
-	for record in acquired_boon_records:
-		acquired_boon_names.append(_format_boon_label(record))
-
-	# 已激活专精名称列表
-	var active_specialization_names: Array[String] = []
-	for spec_id in active_specializations:
-		active_specialization_names.append(SPECIALIZATION_NAMES.get(spec_id, spec_id))
-
-	# 存活灵狼数量
-	var wolf_count: int = 0
-	for wolf in summoned_wolves:
-		if is_instance_valid(wolf):
-			wolf_count += 1
+	# 技能槽位显示：{ Q/E/F -> 技能名 或 "空" }
+	var skill_slots_display: Dictionary = {}
+	for key in ["Q", "E", "F"]:
+		var skill_id: String = skill_slots.get(key, "")
+		skill_slots_display[key] = get_skill_display_name(skill_id) if skill_id != "" else "空"
 
 	return {
 		"current_hp": vitals.get_current_qi_blood(),
@@ -764,20 +928,28 @@ func get_hud_data() -> Dictionary:
 		"cultivation_exp": cultivation_exp,
 		"cultivation_exp_required": cultivation_exp_required,
 		"can_breakthrough": can_breakthrough(),
-		"school_counts": school_counts,
-		"acquired_boon_names": acquired_boon_names,
-		"active_specialization_names": active_specialization_names,
 		"heavenly_stones": heavenly_stones,
-		# ----- 基础攻击 -----
+		"primary_attack_name": get_primary_attack_display_name(primary_attack_type),
+		"skill_slots_display": skill_slots_display,
+	}
+
+
+## 返回构筑页（Tab）需要的数据快照
+func get_build_data() -> Dictionary:
+	# 已激活专精名称列表
+	var active_specialization_names: Array[String] = []
+	for spec_id in active_specializations:
+		active_specialization_names.append(SPECIALIZATION_NAMES.get(spec_id, spec_id))
+
+	return {
+		"sword_root": sword_root,
+		"poison_root": poison_root,
+		"beast_root": beast_root,
+		"unlocked_primary_attacks": unlocked_primary_attacks,
 		"primary_attack_type": primary_attack_type,
-		# ----- 灵狼 -----
-		"wolf_unlocked": wolf_unlocked,
-		"alive_wolf_count": wolf_count,
-		"max_wolf_count": max_wolf_count,
-		"wolf_summon_cooldown_left": wolf_summon_timer,
-		# ----- 实时调试数值 -----
-		"attack_cooldown": attack_cooldown,
-		"sword_damage_bonus": sword_damage_bonus,
-		"poison_tick_damage": 3 + poison_damage_bonus,
-		"wolf_count": wolf_count,
+		"unlocked_skills": unlocked_skills,
+		"skill_slots": skill_slots,
+		"school_counts": school_counts,
+		"active_specialization_names": active_specialization_names,
+		"acquired_boon_records": acquired_boon_records,
 	}

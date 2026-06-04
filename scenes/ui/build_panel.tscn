@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://ccsotjele625i"]
+
+[ext_resource type="Script" path="res://scenes/ui/build_panel.gd" id="1_build"]
+
+[node name="BuildPanel" type="CanvasLayer"]
+layer = 8
+visible = false
+script = ExtResource("1_build")
+
+[node name="Dim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -260.0
+offset_right = 300.0
+offset_bottom = 260.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "构筑信息（按 Tab 关闭）"
+horizontal_alignment = 1
+
+[node name="RootLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "剑灵根：-
+毒灵根：-
+兽灵根：-"
+
+[node name="PrimaryAttackLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "当前基础攻击：-"
+
+[node name="PrimaryAttackContainer" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SkillSlotLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "技能栏："
+
+[node name="SkillSlotContainer" type="VBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="SchoolCountLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "流派："
+
+[node name="SpecializationLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "已激活专精：暂无专精"
+autowrap_mode = 2
+
+[node name="AcquiredBoonLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "已获得机缘：暂无机缘"
+autowrap_mode = 2

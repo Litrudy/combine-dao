@@ -1,25 +1,14 @@
 extends CanvasLayer
-## 基础文字 HUD
-## M2-1 —— 显示玩家气血 / 修为 / 突破状态 / 流派进度 / 已获得机缘。
-## 只读展示，不修改玩家数据。
+## 战斗 HUD
+## M2-4 —— 只保留战斗必要信息：气血 / 修为 / 突破 / 天道石 / 基础攻击 / 技能栏。
+## 流派数量 / 已获得机缘 / 已激活专精 已移至构筑页（Tab）。
 
 @onready var _hp_label: Label = $Panel/VBoxContainer/HpLabel
 @onready var _cultivation_label: Label = $Panel/VBoxContainer/CultivationLabel
 @onready var _breakthrough_label: Label = $Panel/VBoxContainer/BreakthroughLabel
 @onready var _stone_label: Label = $Panel/VBoxContainer/StoneLabel
-@onready var _wolf_label: Label = $Panel/VBoxContainer/WolfLabel
 @onready var _primary_attack_label: Label = $Panel/VBoxContainer/PrimaryAttackLabel
-
-## 基础攻击类型 -> 中文名
-const ATTACK_NAMES: Dictionary = {
-	"sword_qi": "剑气",
-	"poison_dart": "毒镖",
-	"beast_whip": "驭兽鞭",
-}
-@onready var _school_label: Label = $Panel/VBoxContainer/SchoolLabel
-@onready var _boon_list_label: Label = $Panel/VBoxContainer/BoonListLabel
-@onready var _spec_label: Label = $Panel/VBoxContainer/SpecLabel
-@onready var _debug_stat_label: Label = $Panel/VBoxContainer/DebugStatLabel
+@onready var _skill_slot_label: Label = $Panel/VBoxContainer/SkillSlotLabel
 
 ## 目标玩家
 var _player: Node = null
@@ -30,38 +19,11 @@ func _ready() -> void:
 	_connect_player.call_deferred()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	# 按 F1 显隐调试数值行（正式演示时可隐藏）
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F1:
-		_debug_stat_label.visible = not _debug_stat_label.visible
-
-
-func _process(_delta: float) -> void:
-	# 灵狼数量与召唤冷却需要实时刷新（冷却倒计时）
-	if is_instance_valid(_player):
-		_update_wolf_label()
-
-
-## 更新灵狼显示行（数量 / 上限 / 召唤冷却）
-func _update_wolf_label() -> void:
-	if not _player.has_method("get_alive_wolf_count"):
-		return
-	if not _player.wolf_unlocked:
-		_wolf_label.text = "灵狼：未解锁"
-		return
-	var text: String = "灵狼：%d / %d\n按 E 召唤" % [_player.get_alive_wolf_count(), _player.max_wolf_count]
-	var cooldown_left: float = _player.wolf_summon_timer
-	if cooldown_left > 0.0:
-		text += "\n召唤冷却：%.1f 秒" % cooldown_left
-	_wolf_label.text = text
-
-
 ## 查找玩家并连接其状态信号
 func _connect_player() -> void:
 	_player = get_tree().get_first_node_in_group("player")
 	if _player == null:
 		return
-	# 连接状态变化信号
 	if _player.has_signal("stats_changed") and not _player.stats_changed.is_connected(_refresh):
 		_player.stats_changed.connect(_refresh)
 	# 开局刷新一次
@@ -74,36 +36,14 @@ func _refresh() -> void:
 		return
 	var data: Dictionary = _player.get_hud_data()
 
-	# 气血
 	_hp_label.text = "气血：%d / %d" % [data["current_hp"], data["max_hp"]]
-	# 修为
 	_cultivation_label.text = "修为：%d / %d" % [data["cultivation_exp"], data["cultivation_exp_required"]]
-	# 突破状态
 	_breakthrough_label.text = "按 R 突破" if data["can_breakthrough"] else "继续修炼"
-	# 天道石
 	_stone_label.text = "天道石：%d" % data["heavenly_stones"]
-	# 当前基础攻击类型
-	var attack_type: String = data["primary_attack_type"]
-	_primary_attack_label.text = "基础攻击：%s" % ATTACK_NAMES.get(attack_type, attack_type)
-	# 流派进度
-	var sc: Dictionary = data["school_counts"]
-	_school_label.text = "剑气：%d\n御兽：%d\n毒蛊：%d" % [sc["sword"], sc["beast"], sc["poison"]]
-	# 已获得机缘（每行一个，重复机缘带 ×N 后缀）
-	var names: Array = data["acquired_boon_names"]
-	if names.is_empty():
-		_boon_list_label.text = "已获得机缘：暂无机缘"
-	else:
-		_boon_list_label.text = "已获得机缘：\n" + "\n".join(names)
-	# 已激活专精（每行一个）
-	var specs: Array = data["active_specialization_names"]
-	if specs.is_empty():
-		_spec_label.text = "已激活专精：暂无专精"
-	else:
-		_spec_label.text = "已激活专精：\n" + "\n".join(specs)
-	# 实时调试数值：攻击冷却 / 剑气伤害加成 / 毒雾每跳伤害 / 存活灵狼数
-	_debug_stat_label.text = "冷却：%.2fs  剑伤+%d  毒伤%d  灵狼%d" % [
-		data["attack_cooldown"],
-		data["sword_damage_bonus"],
-		data["poison_tick_damage"],
-		data["wolf_count"],
+	_primary_attack_label.text = "基础攻击：%s" % data["primary_attack_name"]
+
+	# 技能栏 Q / E / F
+	var slots: Dictionary = data["skill_slots_display"]
+	_skill_slot_label.text = "Q：%s  E：%s  F：%s" % [
+		slots.get("Q", "空"), slots.get("E", "空"), slots.get("F", "空")
 	]
