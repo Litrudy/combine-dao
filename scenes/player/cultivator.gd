@@ -26,10 +26,10 @@ const BEAST_WHIP_SCENE: PackedScene = preload("res://scenes/player/beast_whip.ts
 var qi_blood: int
 var mana: int
 
-## ===== 灵根（开局随机，总和为 10，每项至少 1）=====
-var sword_root: int = 1
-var poison_root: int = 1
-var beast_root: int = 1
+## ===== 灵根（开局随机，总和为 20，每项至少 2）=====
+var sword_root: int = 2
+var poison_root: int = 2
+var beast_root: int = 2
 
 ## ===== 技能栏系统 =====
 ## 已解锁的基础攻击（左键）
@@ -53,6 +53,19 @@ const PRIMARY_ATTACK_NAMES: Dictionary = {
 	"sword_qi": "剑气",
 	"poison_dart": "毒镖",
 	"beast_whip": "驭兽鞭",
+}
+
+## 基础攻击 id -> 说明文本（构筑页展示）
+const PRIMARY_ATTACK_DESCRIPTIONS: Dictionary = {
+	"sword_qi": "剑气：远程直线攻击，造成 100% 剑灵根伤害，并受到剑气机缘加成。",
+	"poison_dart": "毒镖：远程低伤害攻击，附带毒伤。毒伤基础值为 50% 毒灵根，并受到毒蛊机缘加成。",
+	"beast_whip": "驭兽鞭：近距离范围攻击，伤害较低，但会标记敌人，使灵狼对其造成更高伤害。",
+}
+
+## 技能 id -> 说明文本（构筑页展示）
+const SKILL_DESCRIPTIONS: Dictionary = {
+	"poison_mist": "毒雾：在鼠标位置释放毒雾，对范围内妖兽持续造成毒伤。毒伤受毒灵根和毒蛊机缘影响。",
+	"summon_wolf": "召唤灵狼：召唤灵狼协助战斗。灵狼血量为 800% 兽灵根，攻击为 120% 兽灵根，并受到御兽机缘影响。",
 }
 
 ## 当前修为
@@ -174,13 +187,15 @@ func _ready() -> void:
 	_init_spiritual_roots()
 
 
-## 随机生成三种灵根：各保底 1 点，剩余 7 点随机分配，总和为 10
+## 随机生成三种灵根：各保底 2 点，剩余 14 点随机分配，总和为 20
 func _init_spiritual_roots() -> void:
-	sword_root = 1
-	poison_root = 1
-	beast_root = 1
+	# 每种灵根保底 2 点，确保任一流派不会完全过弱
+	sword_root = 2
+	poison_root = 2
+	beast_root = 2
+	# 剩余 14 点（20 - 2*3）随机分配给三种灵根
 	var roots: Array[String] = ["sword", "poison", "beast"]
-	for _i in 7:
+	for _i in 14:
 		match roots[randi() % roots.size()]:
 			"sword":
 				sword_root += 1
@@ -188,7 +203,8 @@ func _init_spiritual_roots() -> void:
 				poison_root += 1
 			"beast":
 				beast_root += 1
-	print("剑灵根：", sword_root, "，毒灵根：", poison_root, "，兽灵根：", beast_root)
+	# 总和恒为 20，便于校验
+	print("剑灵根：", sword_root, "，毒灵根：", poison_root, "，兽灵根：", beast_root, "，总和：", sword_root + poison_root + beast_root)
 
 	# 连接气血组件的三个信号
 	vitals.damaged.connect(_on_vitals_damaged)
@@ -675,6 +691,18 @@ func get_primary_attack_display_name(attack_id: String) -> String:
 	return PRIMARY_ATTACK_NAMES.get(attack_id, attack_id)
 
 
+## 基础攻击 id -> 说明（未知 id 返回空串）
+func get_primary_attack_description(attack_id: String) -> String:
+	return PRIMARY_ATTACK_DESCRIPTIONS.get(attack_id, "")
+
+
+## 技能 id -> 说明（空槽返回占位说明）
+func get_skill_description(skill_id: String) -> String:
+	if skill_id == "":
+		return "空：当前键位未绑定技能。"
+	return SKILL_DESCRIPTIONS.get(skill_id, "")
+
+
 ## 切换当前基础攻击（仅限已解锁，供构筑页调用）
 func set_primary_attack(attack_id: String) -> void:
 	if attack_id in unlocked_primary_attacks:
@@ -942,4 +970,35 @@ func get_build_data() -> Dictionary:
 		"school_counts": school_counts,
 		"active_specialization_names": active_specialization_names,
 		"acquired_boon_records": acquired_boon_records,
+	}
+
+
+## 返回构筑页「数值预览」需要的数据快照：灵根 / 实际战斗数值 / 基础攻击与技能说明
+func get_combat_preview_data() -> Dictionary:
+	# 技能槽位显示名与说明：{ Q/E/F -> 名称 / 说明 }
+	var skill_slots_display: Dictionary = {}
+	var skill_descriptions: Dictionary = {}
+	for key in ["Q", "E", "F"]:
+		var skill_id: String = skill_slots.get(key, "")
+		skill_slots_display[key] = get_skill_display_name(skill_id) if skill_id != "" else "空"
+		skill_descriptions[key] = get_skill_description(skill_id)
+
+	return {
+		# 灵根原始数值
+		"sword_root": sword_root,
+		"poison_root": poison_root,
+		"beast_root": beast_root,
+		# 灵根驱动的实际战斗数值（含机缘加成）
+		"sword_damage": get_sword_damage(),
+		"poison_damage": get_poison_damage(),
+		"wolf_max_hp": get_wolf_max_hp(),
+		"wolf_damage": get_wolf_damage(),
+		"beast_whip_damage": get_beast_whip_damage(),
+		# 当前基础攻击及其说明
+		"primary_attack_type": primary_attack_type,
+		"primary_attack_name": get_primary_attack_display_name(primary_attack_type),
+		"primary_attack_description": get_primary_attack_description(primary_attack_type),
+		# 技能栏说明
+		"skill_slots_display": skill_slots_display,
+		"skill_descriptions": skill_descriptions,
 	}

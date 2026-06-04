@@ -4,9 +4,12 @@ extends CanvasLayer
 ## 并允许切换基础攻击与调整技能键位。只读展示与调用玩家方法，不直接改玩家数据。
 
 @onready var _root_label: Label = $Panel/VBoxContainer/RootLabel
+@onready var _combat_preview_label: Label = $Panel/VBoxContainer/CombatPreviewLabel
 @onready var _primary_attack_label: Label = $Panel/VBoxContainer/PrimaryAttackLabel
+@onready var _primary_attack_desc_label: Label = $Panel/VBoxContainer/PrimaryAttackDescLabel
 @onready var _primary_attack_container: HBoxContainer = $Panel/VBoxContainer/PrimaryAttackContainer
 @onready var _skill_slot_label: Label = $Panel/VBoxContainer/SkillSlotLabel
+@onready var _skill_desc_label: Label = $Panel/VBoxContainer/SkillDescLabel
 @onready var _skill_slot_container: VBoxContainer = $Panel/VBoxContainer/SkillSlotContainer
 @onready var _school_count_label: Label = $Panel/VBoxContainer/SchoolCountLabel
 @onready var _specialization_label: Label = $Panel/VBoxContainer/SpecializationLabel
@@ -86,15 +89,32 @@ func _refresh() -> void:
 	if not is_instance_valid(_player) or not _player.has_method("get_build_data"):
 		return
 	var data: Dictionary = _player.get_build_data()
+	# 数值预览数据（灵根驱动的实际战斗数值 + 基础攻击 / 技能说明）
+	var preview: Dictionary = {}
+	if _player.has_method("get_combat_preview_data"):
+		preview = _player.get_combat_preview_data()
 
-	# 灵根
-	_root_label.text = "剑灵根：%d\n毒灵根：%d\n兽灵根：%d" % [
-		data["sword_root"], data["poison_root"], data["beast_root"]
+	# 灵根（含总和）
+	var sword_root: int = data["sword_root"]
+	var poison_root: int = data["poison_root"]
+	var beast_root: int = data["beast_root"]
+	_root_label.text = "剑灵根：%d\n毒灵根：%d\n兽灵根：%d\n总和：%d" % [
+		sword_root, poison_root, beast_root, sword_root + poison_root + beast_root
 	]
 
-	# 当前基础攻击
+	# 战斗数值预览（灵根 → 实际数值）
+	_combat_preview_label.text = "战斗数值预览：\n剑气伤害：%d\n毒伤基础：%d\n灵狼血量：%d\n灵狼攻击：%d\n驭兽鞭伤害：%d" % [
+		preview.get("sword_damage", 0),
+		preview.get("poison_damage", 0),
+		preview.get("wolf_max_hp", 0),
+		preview.get("wolf_damage", 0),
+		preview.get("beast_whip_damage", 0),
+	]
+
+	# 当前基础攻击 + 说明
 	var current_attack: String = data["primary_attack_type"]
 	_primary_attack_label.text = "当前基础攻击：%s" % _player.get_primary_attack_display_name(current_attack)
+	_primary_attack_desc_label.text = "说明：%s" % preview.get("primary_attack_description", "")
 
 	# 已解锁基础攻击按钮（点击切换）
 	_clear_container(_primary_attack_container)
@@ -112,6 +132,16 @@ func _refresh() -> void:
 		_slot_text(slots.get("E", "")),
 		_slot_text(slots.get("F", "")),
 	]
+
+	# 技能栏逐键说明（技能名 + 说明）
+	var slot_names: Dictionary = preview.get("skill_slots_display", {})
+	var slot_descs: Dictionary = preview.get("skill_descriptions", {})
+	var skill_lines: Array[String] = []
+	for key in ["Q", "E", "F"]:
+		skill_lines.append("%s：%s\n说明：%s" % [
+			key, slot_names.get(key, "空"), slot_descs.get(key, "")
+		])
+	_skill_desc_label.text = "\n".join(skill_lines)
 
 	# 已解锁技能 + 装备按钮
 	_clear_container(_skill_slot_container)
