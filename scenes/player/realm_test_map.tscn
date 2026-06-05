@@ -1,18 +1,12 @@
-[gd_scene load_steps=21 format=3 uid="uid://dntw8owtqee8b"]
+[gd_scene load_steps=15 format=3 uid="uid://dntw8owtqee8b"]
 
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
-[ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
 [ext_resource type="PackedScene" uid="uid://brxx56mq7grp5" path="res://scenes/ui/boon_choice_panel.tscn" id="3_boonui"]
 [ext_resource type="Script" uid="uid://cchcqvgciqawd" path="res://scenes/player/realm_test_map.gd" id="5_map"]
 [ext_resource type="PackedScene" uid="uid://c0hud00000001" path="res://scenes/ui/hud.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://ccsotjele625i" path="res://scenes/ui/build_panel.tscn" id="7_build"]
 [ext_resource type="PackedScene" uid="uid://noc2123byh26" path="res://scenes/ui/interact_prompt.tscn" id="8_prompt"]
-[ext_resource type="PackedScene" uid="uid://c0spiritspring01" path="res://scenes/events/spirit_spring.tscn" id="9_spring"]
-[ext_resource type="PackedScene" uid="uid://c0heavenlychest1" path="res://scenes/events/heavenly_chest.tscn" id="10_chest"]
-[ext_resource type="PackedScene" uid="uid://c0heavenlystele1" path="res://scenes/events/heavenly_stele.tscn" id="11_stele"]
-[ext_resource type="PackedScene" uid="uid://c0eventchoice01" path="res://scenes/ui/event_choice_panel.tscn" id="12_evt"]
-[ext_resource type="PackedScene" uid="uid://c0brokensword01" path="res://scenes/events/broken_sword_tomb.tscn" id="13_tomb"]
-[ext_resource type="PackedScene" uid="uid://c0beastbonealtar" path="res://scenes/events/beast_bone_altar.tscn" id="14_altar"]
+[ext_resource type="PackedScene" uid="uid://biavo3odxpleq" path="res://scenes/ui/event_choice_panel.tscn" id="12_evt"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -244,38 +238,81 @@ polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 
 [node name="EventChoicePanel" parent="." instance=ExtResource("12_evt")]
 
-[node name="Events" type="Node2D" parent="."]
+[node name="RuntimeEnemies" type="Node2D" parent="."]
 
-[node name="SpiritSpring" parent="Events" instance=ExtResource("9_spring")]
+[node name="RuntimeEvents" type="Node2D" parent="."]
+
+[node name="SpawnPoints" type="Node2D" parent="."]
+
+[node name="EnemySpawnPoints" type="Node2D" parent="SpawnPoints"]
+
+[node name="E1" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-950, -350)
+
+[node name="E2" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-1000, 50)
+
+[node name="E3" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-850, 350)
+
+[node name="E4" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-500, -550)
+
+[node name="E5" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-150, -500)
+
+[node name="E6" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(200, -500)
+
+[node name="E7" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(550, -500)
+
+[node name="E8" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(950, -350)
+
+[node name="E9" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(1000, 100)
+
+[node name="E10" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(850, 400)
+
+[node name="E11" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(500, 520)
+
+[node name="E12" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-500, 520)
+
+[node name="E13" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(-850, -150)
+
+[node name="E14" type="Marker2D" parent="SpawnPoints/EnemySpawnPoints"]
+position = Vector2(800, -150)
+
+[node name="EventSpawnPoints" type="Node2D" parent="SpawnPoints"]
+
+[node name="V1" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
 position = Vector2(-650, 150)
 
-[node name="HeavenlyChest" parent="Events" instance=ExtResource("10_chest")]
+[node name="V2" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
 position = Vector2(350, 300)
 
-[node name="HeavenlyStele" parent="Events" instance=ExtResource("11_stele")]
+[node name="V3" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
 position = Vector2(650, -250)
 
-[node name="BrokenSwordTomb" parent="Events" instance=ExtResource("13_tomb")]
+[node name="V4" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
 position = Vector2(-350, -350)
 
-[node name="BeastBoneAltar" parent="Events" instance=ExtResource("14_altar")]
+[node name="V5" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
 position = Vector2(500, -100)
 
-[node name="Beast" parent="." unique_id=1619129642 instance=ExtResource("2_y2vg1")]
-position = Vector2(-150, -100)
+[node name="V6" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
+position = Vector2(-900, -200)
 
-[node name="Beast2" parent="." unique_id=1007548353 instance=ExtResource("2_y2vg1")]
-position = Vector2(400, -300)
+[node name="V7" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
+position = Vector2(900, 300)
 
-[node name="Beast3" parent="." unique_id=748534951 instance=ExtResource("2_y2vg1")]
-position = Vector2(-450, -50)
-motion_mode = 1
+[node name="V8" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
+position = Vector2(-200, -550)
 
-[node name="Beast4" parent="." unique_id=582597048 instance=ExtResource("2_y2vg1")]
-position = Vector2(150, -350)
-
-[node name="Beast5" parent="." unique_id=175002150 instance=ExtResource("2_y2vg1")]
-position = Vector2(-500, -400)
-
-[node name="Beast6" parent="." unique_id=1457226512 instance=ExtResource("2_y2vg1")]
-position = Vector2(450, -450)
+[node name="V9" type="Marker2D" parent="SpawnPoints/EventSpawnPoints"]
+position = Vector2(250, -450)
