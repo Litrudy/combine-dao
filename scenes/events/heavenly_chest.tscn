@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://c0heavenlychest1"]
+
+[ext_resource type="Script" path="res://scenes/events/heavenly_chest.gd" id="1_chest"]
+
+[sub_resource type="CircleShape2D" id="range"]
+radius = 80.0
+
+[node name="HeavenlyChest" type="Area2D" groups=["realm_event"]]
+script = ExtResource("1_chest")
+event_id = "heavenly_chest"
+event_name = "遗落宝匣"
+description = "获得天道石。"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("range")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.95, 0.78, 0.2, 1)
+polygon = PackedVector2Array(-26, -18, 26, -18, 26, 18, -26, 18)

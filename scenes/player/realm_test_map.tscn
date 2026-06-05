@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://dntw8owtqee8b"]
+[gd_scene load_steps=18 format=3 uid="uid://dntw8owtqee8b"]
 
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
 [ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
@@ -6,6 +6,10 @@
 [ext_resource type="Script" uid="uid://cchcqvgciqawd" path="res://scenes/player/realm_test_map.gd" id="5_map"]
 [ext_resource type="PackedScene" uid="uid://c0hud00000001" path="res://scenes/ui/hud.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://ccsotjele625i" path="res://scenes/ui/build_panel.tscn" id="7_build"]
+[ext_resource type="PackedScene" uid="uid://c0interactprompt" path="res://scenes/ui/interact_prompt.tscn" id="8_prompt"]
+[ext_resource type="PackedScene" uid="uid://c0spiritspring01" path="res://scenes/events/spirit_spring.tscn" id="9_spring"]
+[ext_resource type="PackedScene" uid="uid://c0heavenlychest1" path="res://scenes/events/heavenly_chest.tscn" id="10_chest"]
+[ext_resource type="PackedScene" uid="uid://c0heavenlystele1" path="res://scenes/events/heavenly_stele.tscn" id="11_stele"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -232,6 +236,19 @@ polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 [node name="BuildPanel" parent="." unique_id=1183840734 instance=ExtResource("7_build")]
 
 [node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
+
+[node name="InteractPrompt" parent="." instance=ExtResource("8_prompt")]
+
+[node name="Events" type="Node2D" parent="."]
+
+[node name="SpiritSpring" parent="Events" instance=ExtResource("9_spring")]
+position = Vector2(-650, 150)
+
+[node name="HeavenlyChest" parent="Events" instance=ExtResource("10_chest")]
+position = Vector2(350, 300)
+
+[node name="HeavenlyStele" parent="Events" instance=ExtResource("11_stele")]
+position = Vector2(650, -250)
 
 [node name="Beast" parent="." unique_id=1619129642 instance=ExtResource("2_y2vg1")]
 position = Vector2(-150, -100)

@@ -167,6 +167,8 @@ var _attack_timer: float = 0.0
 var _poison_cast_timer: float = 0.0
 ## 是否正在选择机缘（期间禁止移动与攻击）
 var _choosing_boon: bool = false
+## 本次机缘选择是否来自天道残碑（额外机缘，不结算突破）
+var _bonus_boon: bool = false
 
 ## ===== 动画与冲刺（美术接入新增）=====
 ## 攻击动画播放窗口（独立于攻击冷却，仅用于播放 attack 动画；8 帧 / 16fps ≈ 0.5s）
@@ -297,7 +299,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		cast_primary_attack()
 		return
 
-	# 冲刺（dash，默认 Shift）：短暂高速位移
+	# 冲刺（dash，默认 Space）：短暂高速位移
 	if event.is_action_pressed("dash"):
 		_try_dash()
 		return
@@ -314,6 +316,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("skill_e"):
 		cast_skill_from_slot("E")
 		return
+	# F：优先与附近秘境事件交互；附近无事件时再释放 F 技能
+	if event.is_action_pressed("interact"):
+		if _try_interact():
+			return
 	if event.is_action_pressed("skill_f"):
 		cast_skill_from_slot("F")
 		return
@@ -561,11 +567,57 @@ func _on_boon_selected(boon: Dictionary) -> void:
 				school_counts[tag] += 1
 		check_specializations()
 
-	# 完成突破结算（无论是否重复，玩家本次突破都已完成）
-	complete_breakthrough_after_boon_selected()
+	# 残碑额外机缘：只给机缘，不结算突破（不改层数 / 修为需求）
+	if _bonus_boon:
+		_bonus_boon = false
+		print("天道残碑机缘已获得")
+		stats_changed.emit()
+	else:
+		# 正常突破：完成突破结算
+		complete_breakthrough_after_boon_selected()
 
 	# 恢复移动与攻击
 	_choosing_boon = false
+
+
+## 天道残碑：打开一次额外机缘三选一（不消耗修为、不结算突破）
+func open_bonus_boon_choice() -> void:
+	# 正在选择机缘时不重复打开
+	if _choosing_boon:
+		return
+	# 兜底连接面板
+	if _boon_panel == null:
+		_connect_boon_panel()
+	if _boon_panel == null:
+		push_warning("未找到机缘选择面板（BoonChoicePanel），无法打开残碑机缘")
+		return
+	# 抽取机缘（沿用去重 + 前置 + 加权逻辑）
+	var boons: Array = _boon_manager.roll_boons(acquired_boon_ids, school_counts, 3)
+	if boons.is_empty():
+		print("当前没有可选机缘")
+		return
+	# 标记为额外机缘并进入选择状态（show_boons 会暂停游戏）
+	_bonus_boon = true
+	_choosing_boon = true
+	_boon_panel.show_boons(boons)
+
+
+## 与最近的可交互秘境事件交互（F 键）。成功返回 true
+func _try_interact() -> bool:
+	var best: Node = null
+	var best_dist: float = INF
+	for event in get_tree().get_nodes_in_group("realm_event"):
+		if not is_instance_valid(event) or not event.has_method("can_interact"):
+			continue
+		if not event.can_interact():
+			continue
+		var d: float = global_position.distance_to(event.global_position)
+		if d < best_dist:
+			best_dist = d
+			best = event
+	if best != null:
+		return best.trigger_event(self)
+	return false
 
 
 ## 从机缘数据提取需要长期保存的字段（品阶 / 星级 / 最终数值）

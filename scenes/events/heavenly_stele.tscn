@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://c0heavenlystele1"]
+
+[ext_resource type="Script" path="res://scenes/events/heavenly_stele.gd" id="1_stele"]
+
+[sub_resource type="CircleShape2D" id="range"]
+radius = 80.0
+
+[node name="HeavenlyStele" type="Area2D" groups=["realm_event"]]
+script = ExtResource("1_stele")
+event_id = "heavenly_stele"
+event_name = "天道残碑"
+description = "感悟残碑，获得一次机缘选择。"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("range")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.85, 0.86, 0.88, 1)
+polygon = PackedVector2Array(-20, -34, 20, -34, 20, 34, -20, 34)

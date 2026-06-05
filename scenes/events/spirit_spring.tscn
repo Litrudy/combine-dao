@@ -1,0 +1,19 @@
+[gd_scene load_steps=3 format=3 uid="uid://c0spiritspring01"]
+
+[ext_resource type="Script" path="res://scenes/events/spirit_spring.gd" id="1_spring"]
+
+[sub_resource type="CircleShape2D" id="range"]
+radius = 80.0
+
+[node name="SpiritSpring" type="Area2D" groups=["realm_event"]]
+script = ExtResource("1_spring")
+event_id = "spirit_spring"
+event_name = "灵泉"
+description = "回复部分气血。"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("range")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.2, 0.5, 1, 1)
+polygon = PackedVector2Array(-24, -24, 24, -24, 24, 24, -24, 24)
