@@ -9,6 +9,8 @@ extends CanvasLayer
 @onready var _stone_label: Label = $Panel/VBoxContainer/StoneLabel
 @onready var _primary_attack_label: Label = $Panel/VBoxContainer/PrimaryAttackLabel
 @onready var _skill_slot_label: Label = $Panel/VBoxContainer/SkillSlotLabel
+@onready var _dash_label: Label = $Panel/VBoxContainer/DashLabel
+@onready var _dash_cooldown_bar: ProgressBar = $Panel/VBoxContainer/DashCooldownBar
 
 ## 目标玩家
 var _player: Node = null
@@ -17,6 +19,13 @@ var _player: Node = null
 func _ready() -> void:
 	# 延迟一帧再查找玩家，确保玩家已进入场景树
 	_connect_player.call_deferred()
+
+
+## 身法冷却持续变化，单独每帧刷新（不重建整个 HUD）
+func _process(_delta: float) -> void:
+	if not is_instance_valid(_player) or not _player.has_method("get_hud_data"):
+		return
+	_update_dash(_player.get_hud_data())
 
 
 ## 查找玩家并连接其状态信号
@@ -47,3 +56,18 @@ func _refresh() -> void:
 	_skill_slot_label.text = "Q：%s  E：%s  F：%s" % [
 		slots.get("Q", "空"), slots.get("E", "空"), slots.get("F", "空")
 	]
+
+	# 身法冷却（开局 / 状态变化时也刷新一次）
+	_update_dash(data)
+
+
+## 刷新身法冷却条与文本（供 _refresh 与 _process 共用）
+func _update_dash(data: Dictionary) -> void:
+	if _dash_label == null or _dash_cooldown_bar == null:
+		return
+	var progress: float = data.get("dash_cooldown_progress", 1.0)
+	_dash_cooldown_bar.value = progress * 100.0
+	if data.get("dash_ready", true):
+		_dash_label.text = "身法：可用"
+	else:
+		_dash_label.text = "身法：冷却中 %.1f 秒" % data.get("dash_cooldown_timer", 0.0)

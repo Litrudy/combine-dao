@@ -1067,6 +1067,11 @@ func get_hud_data() -> Dictionary:
 		"heavenly_stones": heavenly_stones,
 		"primary_attack_name": get_primary_attack_display_name(primary_attack_type),
 		"skill_slots_display": skill_slots_display,
+		# 冲刺（身法）冷却数据，供 HUD 冷却条显示
+		"dash_cooldown": dash_cooldown,
+		"dash_cooldown_timer": _dash_cd_timer,
+		"dash_ready": _dash_cd_timer <= 0.0,
+		"dash_cooldown_progress": clampf(1.0 - _dash_cd_timer / dash_cooldown, 0.0, 1.0) if dash_cooldown > 0.0 else 1.0,
 	}
 
 

@@ -29,6 +29,16 @@ extends CharacterBody2D
 ## 距离阈值：大于此值优先冲撞，小于则优先震地
 @export var charge_range: float = 200.0
 
+## ===== 警戒 / 激活 =====
+## 玩家进入此范围后 Boss 苏醒
+@export var boss_detection_range: float = 900.0
+## 激活范围（与侦测范围共同决定触发距离）
+@export var boss_activation_range: float = 900.0
+## 是否已激活（激活后保持战斗，不脱战）
+@export var boss_activated: bool = false
+## 调试：显示警戒范围圈
+@export var debug_show_detection_range: bool = false
+
 ## ===== 天道石掉落 =====
 ## 击败 Boss 掉落天道石的最小 / 最大数量
 @export var boss_heavenly_stone_min: int = 8
@@ -69,6 +79,9 @@ func _ready() -> void:
 	vitals.died.connect(_on_died)
 	# 寻找玩家
 	_acquire_player()
+	# 调试范围圈
+	if debug_show_detection_range:
+		queue_redraw()
 
 
 func _physics_process(delta: float) -> void:
@@ -76,6 +89,16 @@ func _physics_process(delta: float) -> void:
 	if not is_instance_valid(_player):
 		_acquire_player()
 		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
+	# 未激活：原地待命，玩家进入警戒范围后苏醒（激活前不追击、不放技能）
+	if not boss_activated:
+		velocity = Vector2.ZERO
+		var trigger_range: float = min(boss_detection_range, boss_activation_range)
+		if global_position.distance_to(_player.global_position) <= trigger_range:
+			boss_activated = true
+			print("守墟妖王苏醒")
 		move_and_slide()
 		return
 
@@ -212,3 +235,9 @@ func _on_died() -> void:
 		print("守墟妖王掉落天道石：", amount)
 	print("守墟妖王已被击败")
 	queue_free()
+
+
+## 调试：绘制警戒范围圈
+func _draw() -> void:
+	if debug_show_detection_range:
+		draw_arc(Vector2.ZERO, boss_detection_range, 0.0, TAU, 72, Color(1, 0.4, 0.4, 0.35), 2.0)

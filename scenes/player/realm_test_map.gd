@@ -67,16 +67,16 @@ func spawn_boss_encounter() -> void:
 		return
 	boss_spawned = true
 
-	# 生成 Boss，放在地图右侧
+	# 生成 Boss，放在地图上方预留的 Boss 区域
 	var boss := BOSS_SCENE.instantiate()
 	add_child(boss)
-	boss.position = Vector2(300, 0)
+	boss.position = Vector2(0, -500)
 	# Boss 离场（被击败）时触发通关
 	boss.tree_exited.connect(_on_boss_defeated)
 
 	# 生成两个护卫小怪（虽是 normal_enemy，但 boss_spawned 已为 true，不会再次触发）
-	_spawn_guard(Vector2(230, -80))
-	_spawn_guard(Vector2(230, 80))
+	_spawn_guard(Vector2(-140, -420))
+	_spawn_guard(Vector2(140, -420))
 
 	print("小怪已清空，守墟妖王降临")
 

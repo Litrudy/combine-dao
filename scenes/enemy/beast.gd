@@ -22,6 +22,30 @@ extends CharacterBody2D
 ## 精英怪必掉天道石数量
 @export var elite_drop_amount: int = 2
 
+## ===== 寻敌 / 警戒 AI =====
+enum AIState { IDLE, CHASE, ATTACK, RETURN }
+## 进入追击的侦测范围
+@export var detection_range: float = 420.0
+## 脱战范围（必须大于 detection_range）
+@export var lose_target_range: float = 650.0
+## 脱战后是否返回出生点
+@export var return_to_spawn: bool = true
+## IDLE 是否游走（本阶段保留参数，未实现游走）
+@export var idle_move_enabled: bool = false
+## 调试：显示侦测范围圈
+@export var debug_show_detection_range: bool = false
+
+## 当前 AI 状态
+var ai_state: AIState = AIState.IDLE
+## 出生点（首个物理帧记录，兼容运行时动态生成的护卫）
+var spawn_position: Vector2 = Vector2.ZERO
+## 交战时指向玩家，否则为 null（供外部 / 调试参考）
+var target_player: Node2D = null
+## 当前实际作战目标（玩家或更近的灵狼）
+var _current_target: Node2D = null
+## 出生点是否已记录
+var _spawn_recorded: bool = false
+
 ## 目标玩家节点
 var _player: Node2D
 ## 当前攻击冷却剩余时间，<=0 时可再次攻击
@@ -38,6 +62,9 @@ var _elite_applied: bool = false
 func _ready() -> void:
 	# 漂浮模式，适合俯视角无重力移动
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
+	# 自动修正：脱战范围必须大于侦测范围
+	if lose_target_range <= detection_range:
+		lose_target_range = detection_range + 200.0
 	# 精英怪强化
 	if is_elite:
 		_apply_elite_buff()
@@ -45,6 +72,9 @@ func _ready() -> void:
 	vitals.died.connect(_on_died)
 	# 寻找 "player" 组中的玩家节点
 	_acquire_player()
+	# 调试范围圈
+	if debug_show_detection_range:
+		queue_redraw()
 
 
 ## 标记为精英怪并立即应用强化（供地图在 _ready 之后调用）
@@ -68,31 +98,95 @@ func _apply_elite_buff() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	# 首个物理帧记录出生点（此时位置已被生成方设置完毕）
+	if not _spawn_recorded:
+		spawn_position = global_position
+		_spawn_recorded = true
+
 	# 冷却计时递减
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
 
-	# 选择攻击目标：玩家或更近的灵狼
-	var target: Node2D = _select_target()
-	if not is_instance_valid(target):
+	if not is_instance_valid(_player):
 		_acquire_player()
-		velocity = Vector2.ZERO
-		move_and_slide()
-		return
 
-	# 计算与目标的距离
-	var distance: float = global_position.distance_to(target.global_position)
+	# 先更新 AI 状态，再按状态执行行为
+	_update_ai_state()
 
-	if distance <= attack_range:
-		# 进入攻击范围：停止移动并尝试攻击
-		velocity = Vector2.ZERO
-		_try_attack(target)
-	else:
-		# 否则朝目标方向移动
-		var direction: Vector2 = global_position.direction_to(target.global_position)
-		velocity = direction * move_speed
+	match ai_state:
+		AIState.CHASE:
+			# 追击：朝当前目标移动
+			if is_instance_valid(_current_target):
+				velocity = global_position.direction_to(_current_target.global_position) * move_speed
+			else:
+				velocity = Vector2.ZERO
+		AIState.ATTACK:
+			# 攻击：停下并按冷却出手
+			velocity = Vector2.ZERO
+			if is_instance_valid(_current_target):
+				_try_attack(_current_target)
+		AIState.RETURN:
+			# 返回出生点
+			if global_position.distance_to(spawn_position) > 20.0:
+				velocity = global_position.direction_to(spawn_position) * move_speed
+			else:
+				velocity = Vector2.ZERO
+		_:
+			# IDLE：原地待命，不追击不攻击
+			velocity = Vector2.ZERO
 
 	move_and_slide()
+
+
+## 根据玩家距离与目标更新 AI 状态（侦测 / 脱战 / 攻击距离判定）
+func _update_ai_state() -> void:
+	var has_player: bool = is_instance_valid(_player)
+	var player_dist: float = global_position.distance_to(_player.global_position) if has_player else INF
+
+	match ai_state:
+		AIState.IDLE:
+			# 玩家进入侦测范围才开始追击
+			if has_player and player_dist <= detection_range:
+				_enter_combat()
+		AIState.CHASE, AIState.ATTACK:
+			# 玩家离开脱战范围则脱战
+			if not has_player or player_dist > lose_target_range:
+				_disengage()
+			else:
+				# 交战中：选择实际作战目标（玩家或更近的灵狼）
+				_current_target = _select_target()
+				target_player = _player
+				if is_instance_valid(_current_target) \
+						and global_position.distance_to(_current_target.global_position) <= attack_range:
+					ai_state = AIState.ATTACK
+				else:
+					ai_state = AIState.CHASE
+		AIState.RETURN:
+			# 返程途中玩家再次靠近则重新交战
+			if has_player and player_dist <= detection_range:
+				_enter_combat()
+			elif global_position.distance_to(spawn_position) <= 20.0:
+				ai_state = AIState.IDLE
+
+
+## 进入交战状态
+func _enter_combat() -> void:
+	_current_target = _select_target()
+	target_player = _player
+	ai_state = AIState.CHASE
+
+
+## 脱战：返回出生点或转入待机
+func _disengage() -> void:
+	_current_target = null
+	target_player = null
+	ai_state = AIState.RETURN if return_to_spawn else AIState.IDLE
+
+
+## 调试：绘制侦测范围圈
+func _draw() -> void:
+	if debug_show_detection_range:
+		draw_arc(Vector2.ZERO, detection_range, 0.0, TAU, 64, Color(1, 1, 0, 0.35), 2.0)
 
 
 ## 选择攻击目标：默认玩家；若有更近的存活灵狼则优先攻击灵狼

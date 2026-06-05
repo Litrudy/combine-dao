@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://dntw8owtqee8b"]
+[gd_scene load_steps=14 format=3 uid="uid://dntw8owtqee8b"]
 
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
 [ext_resource type="PackedScene" uid="uid://no6vpd7vpph5" path="res://scenes/enemy/beast.tscn" id="2_y2vg1"]
@@ -10,24 +10,176 @@
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_k77xa"]
-resource_local_to_scene = true
-size = Vector2(800, 32)
+[sub_resource type="RectangleShape2D" id="WallH"]
+size = Vector2(2480, 40)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ghoxv"]
-resource_local_to_scene = true
-size = Vector2(800, 32)
+[sub_resource type="RectangleShape2D" id="WallV"]
+size = Vector2(40, 1600)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_fxnhg"]
-resource_local_to_scene = true
-size = Vector2(32, 600)
+[sub_resource type="RectangleShape2D" id="ObRock"]
+size = Vector2(110, 110)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_y2vg1"]
-resource_local_to_scene = true
-size = Vector2(32, 600)
+[sub_resource type="RectangleShape2D" id="ObTree"]
+size = Vector2(70, 100)
+
+[sub_resource type="RectangleShape2D" id="ObPillar"]
+size = Vector2(64, 150)
+
+[sub_resource type="RectangleShape2D" id="ObRuin"]
+size = Vector2(180, 56)
 
 [node name="RealmTestMap" type="Node2D" unique_id=1610993027]
 script = ExtResource("5_map")
+
+[node name="MapRoot" type="Node2D" parent="."]
+
+[node name="Ground" type="Polygon2D" parent="MapRoot"]
+color = Color(0.08, 0.09, 0.11, 1)
+polygon = PackedVector2Array(-1200, -800, 1200, -800, 1200, 800, -1200, 800)
+
+[node name="Boundary" type="Node2D" parent="MapRoot"]
+
+[node name="WallTop" type="StaticBody2D" parent="MapRoot/Boundary" groups=["map_wall"]]
+position = Vector2(0, -820)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Boundary/WallTop"]
+shape = SubResource("WallH")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Boundary/WallTop"]
+color = Color(0.15, 0.16, 0.18, 1)
+polygon = PackedVector2Array(-1240, -20, 1240, -20, 1240, 20, -1240, 20)
+
+[node name="WallBottom" type="StaticBody2D" parent="MapRoot/Boundary" groups=["map_wall"]]
+position = Vector2(0, 820)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Boundary/WallBottom"]
+shape = SubResource("WallH")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Boundary/WallBottom"]
+color = Color(0.15, 0.16, 0.18, 1)
+polygon = PackedVector2Array(-1240, -20, 1240, -20, 1240, 20, -1240, 20)
+
+[node name="WallLeft" type="StaticBody2D" parent="MapRoot/Boundary" groups=["map_wall"]]
+position = Vector2(-1220, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Boundary/WallLeft"]
+shape = SubResource("WallV")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Boundary/WallLeft"]
+color = Color(0.15, 0.16, 0.18, 1)
+polygon = PackedVector2Array(-20, -800, 20, -800, 20, 800, -20, 800)
+
+[node name="WallRight" type="StaticBody2D" parent="MapRoot/Boundary" groups=["map_wall"]]
+position = Vector2(1220, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Boundary/WallRight"]
+shape = SubResource("WallV")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Boundary/WallRight"]
+color = Color(0.15, 0.16, 0.18, 1)
+polygon = PackedVector2Array(-20, -800, 20, -800, 20, 800, -20, 800)
+
+[node name="Obstacles" type="Node2D" parent="MapRoot"]
+
+[node name="Rock1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(-600, -300)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Rock1"]
+shape = SubResource("ObRock")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Rock1"]
+color = Color(0.45, 0.45, 0.47, 1)
+polygon = PackedVector2Array(-55, -55, 55, -55, 55, 55, -55, 55)
+
+[node name="Tree1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(-250, -150)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Tree1"]
+shape = SubResource("ObTree")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Tree1"]
+color = Color(0.32, 0.22, 0.13, 1)
+polygon = PackedVector2Array(-35, -50, 35, -50, 35, 50, -35, 50)
+
+[node name="Pillar1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(250, -250)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Pillar1"]
+shape = SubResource("ObPillar")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Pillar1"]
+color = Color(0.4, 0.5, 0.6, 1)
+polygon = PackedVector2Array(-32, -75, 32, -75, 32, 75, -32, 75)
+
+[node name="Ruin1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(650, -150)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Ruin1"]
+shape = SubResource("ObRuin")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Ruin1"]
+color = Color(0.3, 0.28, 0.26, 1)
+polygon = PackedVector2Array(-90, -28, 90, -28, 90, 28, -90, 28)
+
+[node name="Rock2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(-700, 250)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Rock2"]
+shape = SubResource("ObRock")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Rock2"]
+color = Color(0.45, 0.45, 0.47, 1)
+polygon = PackedVector2Array(-55, -55, 55, -55, 55, 55, -55, 55)
+
+[node name="Tree2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(-300, 350)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Tree2"]
+shape = SubResource("ObTree")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Tree2"]
+color = Color(0.32, 0.22, 0.13, 1)
+polygon = PackedVector2Array(-35, -50, 35, -50, 35, 50, -35, 50)
+
+[node name="Pillar2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(250, 250)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Pillar2"]
+shape = SubResource("ObPillar")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Pillar2"]
+color = Color(0.4, 0.5, 0.6, 1)
+polygon = PackedVector2Array(-32, -75, 32, -75, 32, 75, -32, 75)
+
+[node name="Ruin2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(650, 350)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Ruin2"]
+shape = SubResource("ObRuin")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Ruin2"]
+color = Color(0.3, 0.28, 0.26, 1)
+polygon = PackedVector2Array(-90, -28, 90, -28, 90, 28, -90, 28)
+
+[node name="Rock3" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(0, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Rock3"]
+shape = SubResource("ObRock")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Rock3"]
+color = Color(0.45, 0.45, 0.47, 1)
+polygon = PackedVector2Array(-55, -55, 55, -55, 55, 55, -55, 55)
+
+[node name="Tree3" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(500, 0)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Tree3"]
+shape = SubResource("ObTree")
+
+[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Tree3"]
+color = Color(0.32, 0.22, 0.13, 1)
+polygon = PackedVector2Array(-35, -50, 35, -50, 35, 50, -35, 50)
 
 [node name="ClearPanel" type="CanvasLayer" parent="." unique_id=1745435692]
 layer = 20
@@ -58,9 +210,14 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Cultivator" parent="." unique_id=655860919 instance=ExtResource("1_c7xc1")]
+position = Vector2(0, 500)
 motion_mode = 1
 
 [node name="Camera2D" type="Camera2D" parent="Cultivator" unique_id=1470257711]
+limit_left = -1200
+limit_top = -800
+limit_right = 1200
+limit_bottom = 800
 
 [node name="CollisionShape2D2" type="CollisionShape2D" parent="Cultivator" unique_id=1866404615]
 shape = SubResource("RectangleShape2D_c7xc1")
@@ -70,46 +227,6 @@ visible = false
 color = Color(0.3764706, 1, 1, 1)
 polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 
-[node name="WallTop" type="StaticBody2D" parent="." unique_id=912591589]
-position = Vector2(0, -300)
-
-[node name="CollisionShape2Dw" type="CollisionShape2D" parent="WallTop" unique_id=605242943]
-shape = SubResource("RectangleShape2D_k77xa")
-
-[node name="Visual" type="Polygon2D" parent="WallTop" unique_id=1616969950]
-color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
-polygon = PackedVector2Array(-400, -16, 400, -16, 400, 16, -400, 16)
-
-[node name="WallBottom" type="StaticBody2D" parent="." unique_id=2088937197]
-position = Vector2(0, 300)
-
-[node name="CollisionShape2Ds" type="CollisionShape2D" parent="WallBottom" unique_id=651315227]
-shape = SubResource("RectangleShape2D_ghoxv")
-
-[node name="Visual" type="Polygon2D" parent="WallBottom" unique_id=543346927]
-color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
-polygon = PackedVector2Array(-400, -16, 400, -16, 400, 16, -400, 16)
-
-[node name="WallLeft" type="StaticBody2D" parent="." unique_id=1798731096]
-position = Vector2(-400, 0)
-
-[node name="CollisionShape2Da" type="CollisionShape2D" parent="WallLeft" unique_id=1796312339]
-shape = SubResource("RectangleShape2D_fxnhg")
-
-[node name="Visual" type="Polygon2D" parent="WallLeft" unique_id=856110066]
-color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
-polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
-
-[node name="WallRight" type="StaticBody2D" parent="." unique_id=1677129649]
-position = Vector2(400, 0)
-
-[node name="CollisionShape2Dd" type="CollisionShape2D" parent="WallRight" unique_id=202965698]
-shape = SubResource("RectangleShape2D_y2vg1")
-
-[node name="Visual" type="Polygon2D" parent="WallRight" unique_id=676694082]
-color = Color(2.8878452e-07, 0.25704286, 0.26021704, 1)
-polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
-
 [node name="HUD" parent="." unique_id=978804438 instance=ExtResource("6_hud")]
 
 [node name="BuildPanel" parent="." unique_id=1183840734 instance=ExtResource("7_build")]
@@ -117,20 +234,20 @@ polygon = PackedVector2Array(-16, -300, 16, -300, 16, 300, -16, 300)
 [node name="BoonChoicePanel" parent="." unique_id=1534450875 instance=ExtResource("3_boonui")]
 
 [node name="Beast" parent="." unique_id=1619129642 instance=ExtResource("2_y2vg1")]
-position = Vector2(178, -238)
+position = Vector2(-150, -100)
 
 [node name="Beast2" parent="." unique_id=1007548353 instance=ExtResource("2_y2vg1")]
-position = Vector2(311, 209)
+position = Vector2(400, -300)
 
 [node name="Beast3" parent="." unique_id=748534951 instance=ExtResource("2_y2vg1")]
-position = Vector2(200, 0)
+position = Vector2(-450, -50)
 motion_mode = 1
 
 [node name="Beast4" parent="." unique_id=582597048 instance=ExtResource("2_y2vg1")]
-position = Vector2(-283, -226)
+position = Vector2(150, -350)
 
 [node name="Beast5" parent="." unique_id=175002150 instance=ExtResource("2_y2vg1")]
-position = Vector2(-183, -246)
+position = Vector2(-500, -400)
 
 [node name="Beast6" parent="." unique_id=1457226512 instance=ExtResource("2_y2vg1")]
-position = Vector2(-73, -261)
+position = Vector2(450, -450)
