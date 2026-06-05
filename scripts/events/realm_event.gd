@@ -50,18 +50,23 @@ func can_interact() -> bool:
 
 
 ## 触发事件（玩家按 F 时调用）。成功返回 true
+## 默认即时结算事件（灵泉 / 宝匣 / 残碑）；风险事件可重写本方法改为打开选择面板。
 func trigger_event(player: Node) -> bool:
 	# 已使用或无玩家则不触发
 	if used or player == null:
 		return false
-	used = true
+	mark_used()
 	# 应用子类效果
 	apply_event_effect(player)
 	event_triggered.emit(event_id)
-	# 触发后置灰并停止检测
-	_apply_used_visual()
-	current_player = null
 	return true
+
+
+## 标记事件为已使用并置灰（风险事件在玩家确认提交选项后调用）
+func mark_used() -> void:
+	used = true
+	current_player = null
+	_apply_used_visual()
 
 
 ## 虚方法：实际事件效果，由子类重写

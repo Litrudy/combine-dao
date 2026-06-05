@@ -81,6 +81,20 @@ func spawn_boss_encounter() -> void:
 	print("小怪已清空，守墟妖王降临")
 
 
+## 通用妖兽生成（供事件调用）
+## count_as_normal_enemy=false 时移出 normal_enemy 组，避免事件怪影响 Boss 触发判断
+func spawn_beast_at(pos: Vector2, is_elite: bool = false, count_as_normal_enemy: bool = false) -> Node:
+	var beast := BEAST_SCENE.instantiate()
+	# 入场景前设置 is_elite，确保 _ready 时应用精英强化
+	beast.is_elite = is_elite
+	add_child(beast)
+	beast.global_position = pos
+	if not count_as_normal_enemy:
+		# 事件召唤怪不计入小怪清空判断
+		beast.remove_from_group("normal_enemy")
+	return beast
+
+
 ## 生成一个护卫小怪（20% 概率为精英怪）
 func _spawn_guard(pos: Vector2) -> void:
 	var beast := BEAST_SCENE.instantiate()

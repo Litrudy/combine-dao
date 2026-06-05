@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://b8ynuhwupdf5i"]
+
+[ext_resource type="Script" path="res://scenes/events/broken_sword_tomb.gd" id="1_tomb"]
+
+[sub_resource type="CircleShape2D" id="range"]
+radius = 80.0
+
+[node name="BrokenSwordTomb" type="Area2D" groups=["realm_event"]]
+script = ExtResource("1_tomb")
+event_id = "broken_sword_tomb"
+event_name = "破损剑冢"
+description = "一座残破剑冢散发微弱剑意。你可以取走残余灵石，也可以唤醒剑冢守卫，换取更深层的感悟。"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("range")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.32, 0.45, 0.5, 1)
+polygon = PackedVector2Array(-16, -34, 16, -34, 16, 34, -16, 34)

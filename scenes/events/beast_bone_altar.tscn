@@ -1,0 +1,19 @@
+[gd_scene format=3 uid="uid://g63u0puxto42"]
+
+[ext_resource type="Script" path="res://scenes/events/beast_bone_altar.gd" id="1_altar"]
+
+[sub_resource type="CircleShape2D" id="range"]
+radius = 80.0
+
+[node name="BeastBoneAltar" type="Area2D" groups=["realm_event"]]
+script = ExtResource("1_altar")
+event_id = "beast_bone_altar"
+event_name = "兽骨祭坛"
+description = "祭坛上堆满妖兽骸骨。献上一缕灵气后，将引来一只强大的精英妖兽。"
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("range")
+
+[node name="Visual" type="Polygon2D" parent="."]
+color = Color(0.5, 0.28, 0.24, 1)
+polygon = PackedVector2Array(-28, -20, 28, -20, 28, 20, -28, 20)

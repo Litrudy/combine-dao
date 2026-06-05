@@ -117,8 +117,12 @@ func close_panel() -> void:
 
 ## 机缘选择面板是否打开
 func _is_boon_panel_open() -> bool:
-	var panel: Node = get_tree().get_first_node_in_group("boon_choice_panel")
-	return panel != null and panel.visible
+	# 机缘面板或事件选择面板打开时，均视为阻塞（Tab 不开构筑页 / 关闭时保持暂停）
+	for group_name in ["boon_choice_panel", "event_choice_panel"]:
+		var panel: Node = get_tree().get_first_node_in_group(group_name)
+		if panel != null and panel.visible:
+			return true
+	return false
 
 
 # ===== 模块切换 =====

@@ -44,7 +44,7 @@ func _process(_delta: float) -> void:
 
 ## 是否有阻塞性 UI 打开
 func _is_blocking_ui_open() -> bool:
-	for group_name in ["boon_choice_panel", "build_panel", "clear_panel"]:
+	for group_name in ["boon_choice_panel", "build_panel", "clear_panel", "event_choice_panel"]:
 		var panel: Node = get_tree().get_first_node_in_group(group_name)
 		if panel != null and panel.visible:
 			return true
