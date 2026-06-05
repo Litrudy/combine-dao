@@ -17,8 +17,27 @@ var attack_speed_multiplier: float = 1.0
 ## 召唤它的玩家
 var owner_player: Node2D = null
 
+## ===== 寻敌 / 脱战 / 跟随 AI =====
+enum WolfState { FOLLOW, CHASE, ATTACK, RETURN }
+## 寻敌范围
+@export var detection_range: float = 500.0
+## 脱战范围（必须大于 detection_range）
+@export var lose_target_range: float = 750.0
 ## 跟随玩家时保持的距离（像素），过近则不再靠近
-const FOLLOW_DISTANCE: float = 60.0
+@export var follow_distance: float = 90.0
+## 跟随时超过此距离会主动靠近
+@export var return_distance: float = 180.0
+## 离主人最大距离，超过则强制放弃目标返回
+@export var max_distance_from_owner: float = 900.0
+## 调试：显示寻敌范围圈
+@export var debug_show_detection_range: bool = false
+
+## 当前 AI 状态
+var wolf_state: WolfState = WolfState.FOLLOW
+## 当前锁定的敌人目标
+var current_target: Node2D = null
+## 跟随时相对玩家的随机偏移（避免多狼堆叠）
+var follow_offset: Vector2 = Vector2.ZERO
 
 ## 当前攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
@@ -32,8 +51,14 @@ func _ready() -> void:
 	motion_mode = CharacterBody2D.MOTION_MODE_FLOATING
 	# 加入 ally 分组
 	add_to_group("ally")
+	# 自动修正：脱战范围必须大于寻敌范围
+	if lose_target_range <= detection_range:
+		lose_target_range = detection_range + 200.0
 	# 气血归零时处理死亡
 	vitals.died.connect(_on_died)
+	# 调试范围圈
+	if debug_show_detection_range:
+		queue_redraw()
 
 
 ## 灵狼受到攻击（由妖兽 / Boss 调用）
@@ -52,6 +77,8 @@ func _on_died() -> void:
 ## 由玩家调用，绑定主人
 func setup(player: Node2D) -> void:
 	owner_player = player
+	# 随机一个跟随偏移，避免多只灵狼完全堆叠
+	follow_offset = Vector2(randf_range(-60.0, 60.0), randf_range(-40.0, 40.0))
 
 
 func _physics_process(delta: float) -> void:
@@ -59,51 +86,117 @@ func _physics_process(delta: float) -> void:
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
 
-	# 寻找最近的妖兽
-	var target: Node2D = _find_nearest_enemy()
+	# 先更新 AI 状态，再按状态执行行为
+	_update_wolf_state()
 
-	if is_instance_valid(target):
-		# 有妖兽：靠近并在范围内攻击
-		var distance: float = global_position.distance_to(target.global_position)
-		if distance <= attack_range:
-			# 进入攻击范围：停下并攻击
+	match wolf_state:
+		WolfState.CHASE:
+			# 追击：朝目标移动
+			if is_instance_valid(current_target):
+				velocity = global_position.direction_to(current_target.global_position) * move_speed
+			else:
+				velocity = Vector2.ZERO
+		WolfState.ATTACK:
+			# 攻击：停下并按冷却出手
 			velocity = Vector2.ZERO
-			_try_attack(target)
-		else:
-			# 朝妖兽移动
-			velocity = global_position.direction_to(target.global_position) * move_speed
-	else:
-		# 没有妖兽：跟随玩家，保持一定距离
-		_follow_owner()
+			if is_instance_valid(current_target):
+				_try_attack(current_target)
+		_:
+			# FOLLOW / RETURN：跟随玩家
+			_follow_owner()
 
 	move_and_slide()
 
 
-## 寻找最近的 "enemy" 分组妖兽
+## 根据敌人与主人距离更新 AI 状态
+func _update_wolf_state() -> void:
+	var has_owner: bool = is_instance_valid(owner_player)
+	var owner_dist: float = global_position.distance_to(owner_player.global_position) if has_owner else INF
+
+	# 离主人过远：强制放弃目标并返回（避免越追越远）
+	if has_owner and owner_dist > max_distance_from_owner:
+		current_target = null
+		wolf_state = WolfState.RETURN
+
+	match wolf_state:
+		WolfState.FOLLOW:
+			# 跟随时在寻敌范围内发现敌人则追击
+			var enemy: Node2D = _find_nearest_enemy()
+			if is_instance_valid(enemy):
+				current_target = enemy
+				wolf_state = WolfState.CHASE
+		WolfState.CHASE, WolfState.ATTACK:
+			# 目标失效 / 死亡 / 超出脱战范围则放弃并返回
+			if not _is_target_valid(current_target) \
+					or global_position.distance_to(current_target.global_position) > lose_target_range:
+				current_target = null
+				wolf_state = WolfState.RETURN
+			elif global_position.distance_to(current_target.global_position) <= attack_range:
+				wolf_state = WolfState.ATTACK
+			else:
+				wolf_state = WolfState.CHASE
+		WolfState.RETURN:
+			# 回到玩家附近转为跟随
+			if not has_owner or owner_dist <= follow_distance:
+				wolf_state = WolfState.FOLLOW
+			# 返程途中（且未离主人过远）发现敌人可重新交战
+			elif owner_dist <= max_distance_from_owner:
+				var enemy: Node2D = _find_nearest_enemy()
+				if is_instance_valid(enemy):
+					current_target = enemy
+					wolf_state = WolfState.CHASE
+
+
+## 寻找 detection_range 内最近的存活 "enemy"
 func _find_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_distance: float = INF
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		if not is_instance_valid(enemy) or not enemy is Node2D:
 			continue
+		# 跳过已死亡敌人
+		var enemy_vitals: Vitals = enemy.get_node_or_null("Vitals") as Vitals
+		if enemy_vitals != null and enemy_vitals.is_dead():
+			continue
 		var distance: float = global_position.distance_to(enemy.global_position)
-		if distance < nearest_distance:
+		# 只锁定寻敌范围内、且最近的敌人
+		if distance <= detection_range and distance < nearest_distance:
 			nearest_distance = distance
 			nearest = enemy
 	return nearest
 
 
-## 跟随玩家，超出保持距离时靠近，否则停下
+## 目标是否仍然有效（存在于场景树且未死亡）
+func _is_target_valid(target: Node2D) -> bool:
+	if not is_instance_valid(target) or not target.is_inside_tree():
+		return false
+	var target_vitals: Vitals = target.get_node_or_null("Vitals") as Vitals
+	if target_vitals != null and target_vitals.is_dead():
+		return false
+	return true
+
+
+## 跟随玩家（带随机偏移）：远则快靠近、中距慢靠近、近则停下
 func _follow_owner() -> void:
 	if not is_instance_valid(owner_player):
 		velocity = Vector2.ZERO
 		return
 
-	var distance: float = global_position.distance_to(owner_player.global_position)
-	if distance > FOLLOW_DISTANCE:
-		velocity = global_position.direction_to(owner_player.global_position) * move_speed
+	var target_pos: Vector2 = owner_player.global_position + follow_offset
+	var distance: float = global_position.distance_to(target_pos)
+	if distance > return_distance:
+		velocity = global_position.direction_to(target_pos) * move_speed
+	elif distance > follow_distance:
+		# 中距：慢速靠近，避免和玩家完全重叠
+		velocity = global_position.direction_to(target_pos) * (move_speed * 0.5)
 	else:
 		velocity = Vector2.ZERO
+
+
+## 调试：绘制寻敌范围圈
+func _draw() -> void:
+	if debug_show_detection_range:
+		draw_arc(Vector2.ZERO, detection_range, 0.0, TAU, 64, Color(0.4, 1, 0.6, 0.35), 2.0)
 
 
 ## 尝试攻击妖兽（受冷却限制）
