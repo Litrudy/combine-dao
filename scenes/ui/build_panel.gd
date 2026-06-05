@@ -1,43 +1,118 @@
 extends CanvasLayer
-## 构筑页（Tab）
-## M2-4 —— 显示灵根 / 基础攻击 / 技能栏 / 流派 / 专精 / 已获得机缘，
-## 并允许切换基础攻击与调整技能键位。只读展示与调用玩家方法，不直接改玩家数据。
+## 构筑页（Tab）—— M2-4E 模块化重构
+## 左侧模块按钮切换，右侧 ContentContainer 动态重建对应模块内容。
+## 只读展示与调用玩家已有方法（set_primary_attack / equip_skill_to_slot），不直接改玩家内部变量。
 
-@onready var _root_label: Label = $Panel/VBoxContainer/RootLabel
-@onready var _combat_preview_label: Label = $Panel/VBoxContainer/CombatPreviewLabel
-@onready var _primary_attack_label: Label = $Panel/VBoxContainer/PrimaryAttackLabel
-@onready var _primary_attack_desc_label: Label = $Panel/VBoxContainer/PrimaryAttackDescLabel
-@onready var _primary_attack_container: HBoxContainer = $Panel/VBoxContainer/PrimaryAttackContainer
-@onready var _skill_slot_label: Label = $Panel/VBoxContainer/SkillSlotLabel
-@onready var _skill_desc_label: Label = $Panel/VBoxContainer/SkillDescLabel
-@onready var _skill_slot_container: VBoxContainer = $Panel/VBoxContainer/SkillSlotContainer
-@onready var _school_count_label: Label = $Panel/VBoxContainer/SchoolCountLabel
-@onready var _specialization_label: Label = $Panel/VBoxContainer/SpecializationLabel
-@onready var _acquired_boon_label: Label = $Panel/VBoxContainer/AcquiredBoonLabel
-
+## 当前模块（overview / primary_attack / skill_slot / school / boon）
+var current_module: String = "overview"
 ## 目标玩家
 var _player: Node = null
 
+## 左侧模块按钮
+@onready var _overview_button: Button = $Panel/Margin/VBox/HBox/ModuleList/OverviewButton
+@onready var _primary_attack_button: Button = $Panel/Margin/VBox/HBox/ModuleList/PrimaryAttackButton
+@onready var _skill_slot_button: Button = $Panel/Margin/VBox/HBox/ModuleList/SkillSlotButton
+@onready var _school_button: Button = $Panel/Margin/VBox/HBox/ModuleList/SchoolButton
+@onready var _boon_button: Button = $Panel/Margin/VBox/HBox/ModuleList/BoonButton
+## 右侧内容容器
+@onready var _content_container: VBoxContainer = $Panel/Margin/VBox/HBox/ContentPanel/ContentContainer
+
+## 模块名 -> 左侧按钮（用于高亮当前模块）
+var _module_buttons: Dictionary = {}
+
+## 品阶颜色兜底
+const DEFAULT_COLOR: String = "#FFFFFF"
+
 
 func _ready() -> void:
-	# 暂停时仍可处理输入与按钮（Tab 关闭、切换基础攻击、装备技能）
+	# 暂停时仍可处理输入与按钮
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# 默认隐藏并加入分组，供玩家脚本查找
 	visible = false
 	add_to_group("build_panel")
+
+	# 建立模块名 -> 按钮映射，并设为同组互斥的开关按钮（高亮当前模块）
+	_module_buttons = {
+		"overview": _overview_button,
+		"primary_attack": _primary_attack_button,
+		"skill_slot": _skill_slot_button,
+		"school": _school_button,
+		"boon": _boon_button,
+	}
+	var group := ButtonGroup.new()
+	for module_name in _module_buttons:
+		var btn: Button = _module_buttons[module_name]
+		btn.toggle_mode = true
+		btn.button_group = group
+		# 关闭键盘焦点：避免 Tab 在面板内切换按钮焦点（鼠标点击不受影响）
+		btn.focus_mode = Control.FOCUS_NONE
+		btn.pressed.connect(switch_module.bind(module_name))
+
 	# 延迟一帧连接玩家
 	_connect_player.call_deferred()
 
 
-## 由本面板统一处理 Tab：暂停时玩家输入被冻结，仍能靠此处关闭构筑页
-func _unhandled_input(event: InputEvent) -> void:
+## 统一处理 Tab / ESC。
+## 用 _input（而非 _unhandled_input）拦截：Tab 默认绑定 ui_focus_next，
+## 会在 GUI 焦点导航阶段被消费，早于 _unhandled_input；在 _input 中提前
+## 标记已处理，才能阻止 Tab 切换按钮焦点。
+func _input(event: InputEvent) -> void:
+	# Tab：开关构筑页（机缘面板打开时不开）
 	if event.is_action_pressed("open_build_panel"):
-		if visible:
-			close()
-		elif not _is_boon_panel_open():
-			# 机缘三选一打开时不允许打开构筑页
-			open()
+		toggle_panel()
 		get_viewport().set_input_as_handled()
+		return
+	# ESC：仅在构筑页打开时关闭
+	if visible and event.is_action_pressed("ui_cancel"):
+		close_panel()
+		get_viewport().set_input_as_handled()
+
+
+# ===== 玩家连接 =====
+
+## 查找玩家并连接状态信号
+func _connect_player() -> void:
+	set_player(get_tree().get_first_node_in_group("player"))
+
+
+## 设置目标玩家并连接其状态变化信号
+func set_player(player_node: Node) -> void:
+	_player = player_node
+	if _player != null and _player.has_signal("stats_changed"):
+		if not _player.stats_changed.is_connected(_on_stats_changed):
+			_player.stats_changed.connect(_on_stats_changed)
+
+
+## 玩家状态变化时，若构筑页可见则刷新当前模块
+func _on_stats_changed() -> void:
+	if visible:
+		refresh()
+
+
+# ===== 开关与暂停 =====
+
+## 切换显隐
+func toggle_panel() -> void:
+	if visible:
+		close_panel()
+	elif not _is_boon_panel_open():
+		# 机缘三选一打开时不允许打开构筑页
+		open_panel()
+
+
+## 打开：默认显示角色总览，并暂停游戏
+func open_panel() -> void:
+	if _player == null:
+		_connect_player()
+	visible = true
+	get_tree().paused = true
+	switch_module("overview")
+
+
+## 关闭：若没有其它阻塞性 UI（机缘三选一）打开，则恢复游戏
+func close_panel() -> void:
+	visible = false
+	if not _is_boon_panel_open():
+		get_tree().paused = false
 
 
 ## 机缘选择面板是否打开
@@ -46,158 +121,182 @@ func _is_boon_panel_open() -> bool:
 	return panel != null and panel.visible
 
 
-## 查找玩家并连接状态信号
-func _connect_player() -> void:
-	_player = get_tree().get_first_node_in_group("player")
-	if _player != null and _player.has_signal("stats_changed"):
-		if not _player.stats_changed.is_connected(_on_stats_changed):
-			_player.stats_changed.connect(_on_stats_changed)
+# ===== 模块切换 =====
+
+## 切换到指定模块并重建右侧内容
+func switch_module(module_name: String) -> void:
+	current_module = module_name
+	# 高亮当前模块按钮（同组开关，自动取消其它按钮）
+	if _module_buttons.has(module_name):
+		_module_buttons[module_name].button_pressed = true
+	refresh()
 
 
-## 玩家状态变化时，若构筑页可见则刷新
-func _on_stats_changed() -> void:
-	if visible:
-		_refresh()
-
-
-## 切换显隐（保留为公开方法，Tab 由本面板 _unhandled_input 直接调用 open/close）
-func toggle() -> void:
-	if visible:
-		close()
-	else:
-		open()
-
-
-## 打开并刷新，同时暂停游戏
-func open() -> void:
-	if _player == null:
-		_connect_player()
-	_refresh()
-	visible = true
-	get_tree().paused = true
-
-
-## 关闭；若没有其它阻塞性 UI（机缘三选一）打开，则恢复游戏
-func close() -> void:
-	visible = false
-	if not _is_boon_panel_open():
-		get_tree().paused = false
-
-
-## 根据玩家构筑数据刷新页面
-func _refresh() -> void:
+## 刷新当前模块（清空右侧并按 current_module 重建）
+func refresh() -> void:
+	if not visible:
+		return
 	if not is_instance_valid(_player) or not _player.has_method("get_build_data"):
 		return
-	var data: Dictionary = _player.get_build_data()
-	# 数值预览数据（灵根驱动的实际战斗数值 + 基础攻击 / 技能说明）
-	var preview: Dictionary = {}
-	if _player.has_method("get_combat_preview_data"):
-		preview = _player.get_combat_preview_data()
+	clear_content()
+	match current_module:
+		"primary_attack":
+			show_primary_attack_module()
+		"skill_slot":
+			show_skill_slot_module()
+		"school":
+			show_school_module()
+		"boon":
+			show_boon_module()
+		_:
+			show_overview_module()
 
-	# 灵根（含总和）
-	var sword_root: int = data["sword_root"]
-	var poison_root: int = data["poison_root"]
-	var beast_root: int = data["beast_root"]
-	_root_label.text = "剑灵根：%d\n毒灵根：%d\n兽灵根：%d\n总和：%d" % [
-		sword_root, poison_root, beast_root, sword_root + poison_root + beast_root
-	]
 
-	# 战斗数值预览（灵根 → 实际数值）
-	_combat_preview_label.text = "战斗数值预览：\n剑气伤害：%d\n毒伤基础：%d\n灵狼血量：%d\n灵狼攻击：%d\n驭兽鞭伤害：%d" % [
-		preview.get("sword_damage", 0),
-		preview.get("poison_damage", 0),
-		preview.get("wolf_max_hp", 0),
-		preview.get("wolf_damage", 0),
-		preview.get("beast_whip_damage", 0),
-	]
+## 清空右侧内容容器（立即移除，避免与新内容重叠）
+func clear_content() -> void:
+	for child in _content_container.get_children():
+		_content_container.remove_child(child)
+		child.queue_free()
 
-	# 当前基础攻击 + 说明
-	var current_attack: String = data["primary_attack_type"]
-	_primary_attack_label.text = "当前基础攻击：%s" % _player.get_primary_attack_display_name(current_attack)
-	_primary_attack_desc_label.text = "说明：%s" % preview.get("primary_attack_description", "")
 
-	# 已解锁基础攻击按钮（点击切换）
-	_clear_container(_primary_attack_container)
-	for attack_id in data["unlocked_primary_attacks"]:
-		var button := Button.new()
-		var attack_name: String = _player.get_primary_attack_display_name(attack_id)
-		button.text = attack_name + ("（当前）" if attack_id == current_attack else "")
-		button.pressed.connect(_player.set_primary_attack.bind(attack_id))
-		_primary_attack_container.add_child(button)
+# ===== 模块一：角色总览 =====
 
-	# 技能栏当前绑定
-	var slots: Dictionary = data["skill_slots"]
-	_skill_slot_label.text = "技能栏：\nQ：%s   E：%s   F：%s" % [
-		_slot_text(slots.get("Q", "")),
-		_slot_text(slots.get("E", "")),
-		_slot_text(slots.get("F", "")),
-	]
+func show_overview_module() -> void:
+	var preview: Dictionary = _player.get_combat_preview_data()
+	var sword_root: int = preview.get("sword_root", 0)
+	var poison_root: int = preview.get("poison_root", 0)
+	var beast_root: int = preview.get("beast_root", 0)
 
-	# 技能栏逐键说明（技能名 + 说明）
-	var slot_names: Dictionary = preview.get("skill_slots_display", {})
-	var slot_descs: Dictionary = preview.get("skill_descriptions", {})
-	var skill_lines: Array[String] = []
+	_add_heading("灵根")
+	_add_text("剑灵根：%d" % sword_root)
+	_add_text("毒灵根：%d" % poison_root)
+	_add_text("兽灵根：%d" % beast_root)
+	_add_text("总和：%d" % (sword_root + poison_root + beast_root))
+
+	_add_heading("战斗数值预览")
+	_add_text("剑气伤害：%d" % preview.get("sword_damage", 0))
+	_add_text("毒伤基础：%d" % preview.get("poison_damage", 0))
+	_add_text("灵狼血量：%d" % preview.get("wolf_max_hp", 0))
+	_add_text("灵狼攻击：%d" % preview.get("wolf_damage", 0))
+	_add_text("驭兽鞭伤害：%d" % preview.get("beast_whip_damage", 0))
+
+	_add_heading("当前基础攻击")
+	_add_text(preview.get("primary_attack_name", "-"))
+
+	_add_heading("当前技能栏")
+	var slots: Dictionary = preview.get("skill_slots_display", {})
 	for key in ["Q", "E", "F"]:
-		skill_lines.append("%s：%s\n说明：%s" % [
-			key, slot_names.get(key, "空"), slot_descs.get(key, "")
-		])
-	_skill_desc_label.text = "\n".join(skill_lines)
+		_add_text("%s：%s" % [key, slots.get(key, "空")])
 
-	# 已解锁技能 + 装备按钮
-	_clear_container(_skill_slot_container)
+
+# ===== 模块二：基础攻击 =====
+
+func show_primary_attack_module() -> void:
+	var data: Dictionary = _player.get_build_data()
+	var preview: Dictionary = _player.get_combat_preview_data()
+	var current_attack: String = data["primary_attack_type"]
+
+	_add_heading("当前基础攻击")
+	_add_text(_player.get_primary_attack_display_name(current_attack))
+
+	_add_heading("说明")
+	_add_text(preview.get("primary_attack_description", ""))
+
+	_add_heading("已解锁基础攻击")
+	var unlocked: Array = data["unlocked_primary_attacks"]
+	# 固定展示三种基础攻击：未解锁的按钮置灰不可点击
+	for attack_id in ["sword_qi", "poison_dart", "beast_whip"]:
+		var is_unlocked: bool = attack_id in unlocked
+		var button := Button.new()
+		var label: String = _player.get_primary_attack_display_name(attack_id)
+		if attack_id == current_attack:
+			label += "（当前）"
+		elif not is_unlocked:
+			label += "（未解锁）"
+		button.text = label
+		button.disabled = not is_unlocked
+		button.focus_mode = Control.FOCUS_NONE
+		if is_unlocked:
+			# 调用玩家方法切换基础攻击（仅切换已解锁项）
+			button.pressed.connect(_player.set_primary_attack.bind(attack_id))
+		_content_container.add_child(button)
+
+
+# ===== 模块三：技能栏 =====
+
+func show_skill_slot_module() -> void:
+	var data: Dictionary = _player.get_build_data()
+	var preview: Dictionary = _player.get_combat_preview_data()
+	var slots_display: Dictionary = preview.get("skill_slots_display", {})
+
+	_add_heading("当前技能栏")
+	for key in ["Q", "E", "F"]:
+		_add_text("%s：%s" % [key, slots_display.get(key, "空")])
+
+	_add_heading("已解锁技能")
 	var unlocked_skills: Array = data["unlocked_skills"]
 	if unlocked_skills.is_empty():
-		var empty_label := Label.new()
-		empty_label.text = "暂无已解锁技能"
-		_skill_slot_container.add_child(empty_label)
-	else:
-		for skill_id in unlocked_skills:
-			_skill_slot_container.add_child(_make_skill_row(skill_id))
+		_add_text("暂无已解锁技能")
+		return
+	# 逐个技能：名称 + 说明 + 装备到 Q/E/F 按钮
+	for skill_id in unlocked_skills:
+		_add_text("%s：%s" % [
+			_player.get_skill_display_name(skill_id),
+			_player.get_skill_description(skill_id),
+		])
+		var row := HBoxContainer.new()
+		for slot_key in ["Q", "E", "F"]:
+			var button := Button.new()
+			button.text = "装备到 " + slot_key
+			button.focus_mode = Control.FOCUS_NONE
+			# 调用玩家方法装备技能（同一技能不会占多个键位，由玩家方法保证）
+			button.pressed.connect(_player.equip_skill_to_slot.bind(skill_id, slot_key))
+			row.add_child(button)
+		_content_container.add_child(row)
 
-	# 流派数量
+
+# ===== 模块四：流派专精 =====
+
+func show_school_module() -> void:
+	var data: Dictionary = _player.get_build_data()
 	var sc: Dictionary = data["school_counts"]
-	_school_count_label.text = "流派：剑气 %d   御兽 %d   毒蛊 %d" % [
-		sc.get("sword", 0), sc.get("beast", 0), sc.get("poison", 0)
-	]
 
-	# 已激活专精
+	_add_heading("流派数量")
+	_add_text("剑气：%d" % sc.get("sword", 0))
+	_add_text("御兽：%d" % sc.get("beast", 0))
+	_add_text("毒蛊：%d" % sc.get("poison", 0))
+
+	_add_heading("已激活专精")
 	var specs: Array = data["active_specialization_names"]
 	if specs.is_empty():
-		_specialization_label.text = "已激活专精：暂无专精"
+		_add_text("暂无专精")
 	else:
-		_specialization_label.text = "已激活专精：" + "、".join(specs)
+		for spec_name in specs:
+			_add_text("· %s" % spec_name)
 
-	# 已获得机缘（带品阶星级）
+	_add_heading("流派说明")
+	_add_text("剑气流：强化剑气伤害、穿透和斩杀。")
+	_add_text("御兽流：强化灵狼数量、伤害、生存与协同。")
+	_add_text("毒蛊流：强化毒伤、叠毒和毒爆。")
+
+
+# ===== 模块五：已获机缘 =====
+
+func show_boon_module() -> void:
+	var data: Dictionary = _player.get_build_data()
 	var records: Array = data["acquired_boon_records"]
+
+	_add_heading("已获得机缘")
 	if records.is_empty():
-		_acquired_boon_label.text = "已获得机缘：暂无机缘"
-	else:
-		var names: Array[String] = []
-		for record in records:
-			names.append(_format_record(record))
-		_acquired_boon_label.text = "已获得机缘：\n" + "\n".join(names)
-
-
-## 单个技能行：技能名 + 装备到 Q/E/F 按钮
-func _make_skill_row(skill_id: String) -> HBoxContainer:
-	var row := HBoxContainer.new()
-	var name_label := Label.new()
-	name_label.text = _player.get_skill_display_name(skill_id) + "："
-	name_label.custom_minimum_size = Vector2(90, 0)
-	row.add_child(name_label)
-	for slot_key in ["Q", "E", "F"]:
-		var button := Button.new()
-		button.text = "装备到 " + slot_key
-		button.pressed.connect(_player.equip_skill_to_slot.bind(skill_id, slot_key))
-		row.add_child(button)
-	return row
-
-
-## 槽位显示文本（空则显示“空”）
-func _slot_text(skill_id: String) -> String:
-	if skill_id == "":
-		return "空"
-	return _player.get_skill_display_name(skill_id)
+		_add_text("暂无机缘")
+		return
+	for record in records:
+		# 标题行按品阶颜色显示
+		var color := Color(record.get("grade_color", DEFAULT_COLOR))
+		_add_text(_format_record(record), color)
+		var desc: String = record.get("description", "")
+		if desc != "":
+			_add_text("描述：%s" % desc)
 
 
 ## 机缘记录显示：【品阶】名 星级
@@ -213,7 +312,20 @@ func _format_record(record: Dictionary) -> String:
 	return result
 
 
-## 清空容器子节点
-func _clear_container(container: Node) -> void:
-	for child in container.get_children():
-		child.queue_free()
+# ===== 内容构建辅助 =====
+
+## 添加一行普通文本（自动换行、可选颜色），返回该 Label
+func _add_text(text: String, color: Color = Color.WHITE) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", color)
+	_content_container.add_child(label)
+	return label
+
+
+## 添加一行小标题（带空行分隔感，使用淡色）
+func _add_heading(text: String) -> Label:
+	var label := _add_text("【%s】" % text, Color(0.7, 0.85, 1.0))
+	return label

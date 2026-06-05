@@ -31,10 +31,11 @@ func _ready() -> void:
 	# 让剑气朝向与飞行方向一致
 	rotation = direction.angle()
 	# 根据宽度加成横向加宽（垂直于飞行方向的 y 轴）
+	# 用乘法叠加，兼容 Visual 自身已设置的基础缩放（如 0.07 像素图缩放）
 	if width_bonus > 0:
 		var width_scale: float = 1.0 + width_bonus * 0.6
-		$CollisionShape2D.scale.y = width_scale
-		$Visual.scale.y = width_scale
+		$CollisionShape2D.scale.y *= width_scale
+		$Visual.scale.y *= width_scale
 	# 进入其他物体区域时触发命中判定
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)

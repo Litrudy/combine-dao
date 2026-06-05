@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(cd /e/project/combine-dao)",
-      "Bash(grep -rn \"_release_sword_qi\" scenes/ scripts/)"
+      "Bash(grep -rn \"_release_sword_qi\" scenes/ scripts/)",
+      "Bash(python -)"
     ]
   }
 }

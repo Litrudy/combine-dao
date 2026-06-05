@@ -22,76 +22,76 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -330.0
-offset_top = -310.0
-offset_right = 330.0
-offset_bottom = 310.0
+offset_left = -360.0
+offset_top = -260.0
+offset_right = 360.0
+offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
+[node name="Margin" type="MarginContainer" parent="Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
 
-[node name="TitleLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleLabel" type="Label" parent="Panel/Margin/VBox"]
 layout_mode = 2
 text = "构筑信息（按 Tab 关闭）"
 horizontal_alignment = 1
 
-[node name="RootLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="HBox" type="HBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "剑灵根：-
-毒灵根：-
-兽灵根：-
-总和：-"
+size_flags_vertical = 3
+theme_override_constants/separation = 12
 
-[node name="CombatPreviewLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="ModuleList" type="VBoxContainer" parent="Panel/Margin/VBox/HBox"]
 layout_mode = 2
-text = "战斗数值预览："
+theme_override_constants/separation = 6
 
-[node name="PrimaryAttackLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="OverviewButton" type="Button" parent="Panel/Margin/VBox/HBox/ModuleList"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "当前基础攻击：-"
+text = "角色总览"
 
-[node name="PrimaryAttackDescLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="PrimaryAttackButton" type="Button" parent="Panel/Margin/VBox/HBox/ModuleList"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "说明：-"
-autowrap_mode = 2
+text = "基础攻击"
 
-[node name="PrimaryAttackContainer" type="HBoxContainer" parent="Panel/VBoxContainer"]
+[node name="SkillSlotButton" type="Button" parent="Panel/Margin/VBox/HBox/ModuleList"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
+text = "技能栏"
 
-[node name="SkillSlotLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="SchoolButton" type="Button" parent="Panel/Margin/VBox/HBox/ModuleList"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "技能栏："
+text = "流派专精"
 
-[node name="SkillDescLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="BoonButton" type="Button" parent="Panel/Margin/VBox/HBox/ModuleList"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Q / E / F 技能说明"
-autowrap_mode = 2
+text = "已获机缘"
 
-[node name="SkillSlotContainer" type="VBoxContainer" parent="Panel/VBoxContainer"]
+[node name="ContentPanel" type="ScrollContainer" parent="Panel/Margin/VBox/HBox"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="SchoolCountLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="ContentContainer" type="VBoxContainer" parent="Panel/Margin/VBox/HBox/ContentPanel"]
 layout_mode = 2
-text = "流派："
-
-[node name="SpecializationLabel" type="Label" parent="Panel/VBoxContainer"]
-layout_mode = 2
-text = "已激活专精：暂无专精"
-autowrap_mode = 2
-
-[node name="AcquiredBoonLabel" type="Label" parent="Panel/VBoxContainer"]
-layout_mode = 2
-text = "已获得机缘：暂无机缘"
-autowrap_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8

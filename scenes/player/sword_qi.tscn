@@ -1,16 +1,21 @@
 [gd_scene format=3 uid="uid://c0swordqi0001"]
 
-[ext_resource type="Script" path="res://scenes/player/sword_qi.gd" id="1_swordqi"]
+[ext_resource type="Script" uid="uid://4n8kfw65vc1x" path="res://scenes/player/sword_qi.gd" id="1_swordqi"]
+[ext_resource type="SpriteFrames" uid="uid://b5xo5oirjvl5h" path="res://scenes/player/sword_qi_frames.tres" id="2_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_swordqi"]
-size = Vector2(20, 6)
+size = Vector2(25, 6)
 
-[node name="SwordQi" type="Area2D"]
+[node name="SwordQi" type="Area2D" unique_id=2056982763]
 script = ExtResource("1_swordqi")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.6, 0.95, 1, 1)
-polygon = PackedVector2Array(-10, -3, 10, -3, 10, 3, -10, 3)
+[node name="Visual" type="AnimatedSprite2D" parent="." unique_id=1999852652]
+texture_filter = 1
+scale = Vector2(0.07, 0.07)
+sprite_frames = ExtResource("2_frames")
+animation = &"fly"
+autoplay = "fly"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2005802828]
+position = Vector2(5, 0)
 shape = SubResource("RectangleShape2D_swordqi")

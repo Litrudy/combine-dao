@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3 uid="uid://b5xo5oirjvl5h"]
+
+[ext_resource type="Texture2D" uid="uid://byymb1rdh32yo" path="res://art/effects/sword_qi_fly.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="s0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 604, 161)
+
+[sub_resource type="AtlasTexture" id="s1"]
+atlas = ExtResource("1")
+region = Rect2(604, 0, 604, 161)
+
+[sub_resource type="AtlasTexture" id="s2"]
+atlas = ExtResource("1")
+region = Rect2(1208, 0, 604, 161)
+
+[sub_resource type="AtlasTexture" id="s3"]
+atlas = ExtResource("1")
+region = Rect2(1812, 0, 604, 161)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("s0")
+}, {
+"duration": 1.0,
+"texture": SubResource("s1")
+}, {
+"duration": 1.0,
+"texture": SubResource("s2")
+}, {
+"duration": 1.0,
+"texture": SubResource("s3")
+}],
+"loop": true,
+"name": &"fly",
+"speed": 12.0
+}]

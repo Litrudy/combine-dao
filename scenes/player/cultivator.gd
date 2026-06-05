@@ -168,6 +168,30 @@ var _poison_cast_timer: float = 0.0
 ## 是否正在选择机缘（期间禁止移动与攻击）
 var _choosing_boon: bool = false
 
+## ===== 动画与冲刺（美术接入新增）=====
+## 攻击动画播放窗口（独立于攻击冷却，仅用于播放 attack 动画；8 帧 / 16fps ≈ 0.5s）
+@export var attack_anim_duration: float = 0.5
+## 冲刺距离 / 持续时间 / 冷却 / 无敌帧时长
+@export var dash_distance: float = 150.0
+@export var dash_duration: float = 0.18
+@export var dash_cooldown: float = 3.0
+@export var dash_invincible_time: float = 0.15
+## attack 动画剩余播放时间
+var _attack_anim_timer: float = 0.0
+## 冲刺剩余时间 / 冷却剩余时间 / 冲刺方向
+var _dash_timer: float = 0.0
+var _dash_cd_timer: float = 0.0
+var _dash_dir: Vector2 = Vector2.ZERO
+## 无敌帧剩余时间（>0 时免疫伤害）
+var _invincible_timer: float = 0.0
+## 当前横向朝向（"R" 右 / "L" 左）：横向移动时更新，纯纵向 / 静止时保持
+var facing_dir: String = "R"
+## 攻击 / 冲刺时锁定的朝向（攻击看鼠标、冲刺看冲刺方向）
+var _attack_facing: String = "R"
+var _dash_facing: String = "R"
+## 判定是否在移动的速度阈值（避免动画抖动）
+const MOVE_EPS: float = 5.0
+
 ## 机缘管理器，负责抽取机缘
 var _boon_manager := BoonManager.new()
 ## 机缘选择面板（运行时从分组查找）
@@ -175,6 +199,8 @@ var _boon_panel: Node = null
 
 ## 气血组件（子节点 Vitals），负责气血、受伤、治疗与死亡
 @onready var vitals: Vitals = $Vitals
+## 角色动画显示节点（待机 / 行走 / 攻击 / 冲刺）
+@onready var _anim_sprite: AnimatedSprite2D = $AnimatedSprite
 
 
 func _ready() -> void:
@@ -225,19 +251,36 @@ func _physics_process(delta: float) -> void:
 	# 灵狼召唤冷却递减
 	if wolf_summon_timer > 0.0:
 		wolf_summon_timer -= delta
+	# 攻击动画窗口 / 冲刺计时 / 冲刺冷却递减
+	if _attack_anim_timer > 0.0:
+		_attack_anim_timer -= delta
+	if _dash_timer > 0.0:
+		_dash_timer -= delta
+	if _dash_cd_timer > 0.0:
+		_dash_cd_timer -= delta
+	# 无敌帧递减
+	if _invincible_timer > 0.0:
+		_invincible_timer -= delta
 
 	# 选择机缘 / 构筑页打开期间禁止移动
 	if _choosing_boon or _is_build_panel_open():
 		velocity = Vector2.ZERO
 		move_and_slide()
+		_update_animation()
 		return
 
-	var direction: Vector2 = Input.get_vector(
-		"move_left", "move_right", "move_up", "move_down"
-	)
+	if _dash_timer > 0.0:
+		# 冲刺中：沿冲刺方向匀速移动（速度 = 距离 / 时长），忽略普通输入
+		velocity = _dash_dir * (dash_distance / dash_duration)
+	else:
+		var direction: Vector2 = Input.get_vector(
+			"move_left", "move_right", "move_up", "move_down"
+		)
+		velocity = direction * speed
 
-	velocity = direction * speed
 	move_and_slide()
+	# 根据当前状态更新角色动画
+	_update_animation()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -252,6 +295,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	# 鼠标左键（attack_primary）：基础攻击
 	if event.is_action_pressed("attack_primary"):
 		cast_primary_attack()
+		return
+
+	# 冲刺（dash，默认 Shift）：短暂高速位移
+	if event.is_action_pressed("dash"):
+		_try_dash()
 		return
 
 	# R 键（breakthrough）：可突破时弹出机缘三选一
@@ -306,6 +354,72 @@ func cast_primary_attack() -> void:
 
 	# 重置冷却
 	_attack_timer = attack_cooldown
+	# 攻击朝向看鼠标方向：右侧 attack_R，左侧 attack_L
+	_attack_facing = "R" if direction.x >= 0.0 else "L"
+	facing_dir = _attack_facing
+	# 开启攻击动画窗口并立即播放一次方向攻击动画
+	_attack_anim_timer = attack_anim_duration
+	if _anim_sprite != null:
+		_anim_sprite.play("attack_" + _attack_facing)
+
+
+# ===== 冲刺与动画 =====
+
+## 尝试冲刺（Space）：朝鼠标方向冲刺，受冷却与界面状态限制，并获得无敌帧
+func _try_dash() -> void:
+	# 机缘选择 / 构筑页 / 通关面板打开时禁止冲刺
+	if _choosing_boon or _is_build_panel_open() or _is_run_cleared():
+		return
+	# 冷却未结束或正在冲刺中不可再冲刺
+	if _dash_cd_timer > 0.0 or _dash_timer > 0.0:
+		return
+	# 冲刺方向：玩家当前位置 → 鼠标世界坐标
+	var dir: Vector2 = (get_global_mouse_position() - global_position).normalized()
+	# 鼠标与玩家重合导致方向为零时，退回当前横向朝向
+	if dir == Vector2.ZERO:
+		dir = Vector2(1.0 if facing_dir == "R" else -1.0, 0.0)
+	_dash_dir = dir
+	# 冲刺朝向看冲刺方向：右 dash_R，左 dash_L
+	_dash_facing = "R" if _dash_dir.x >= 0.0 else "L"
+	facing_dir = _dash_facing
+	_dash_timer = dash_duration
+	_dash_cd_timer = dash_cooldown
+	# 冲刺前段获得无敌帧
+	_invincible_timer = dash_invincible_time
+
+
+## 根据当前状态播放方向动画（优先级：冲刺 > 攻击 > 行走 > 待机）
+func _update_animation() -> void:
+	if _anim_sprite == null:
+		return
+	# 横向移动时更新朝向；纯纵向 / 静止保持上一次朝向
+	if velocity.x > MOVE_EPS:
+		facing_dir = "R"
+	elif velocity.x < -MOVE_EPS:
+		facing_dir = "L"
+
+	if _dash_timer > 0.0:
+		# 冲刺：方向锁定为冲刺方向
+		_play_anim("dash_" + _dash_facing)
+	elif _attack_anim_timer > 0.0:
+		# 攻击：方向锁定为出手时的鼠标方向，不被移动 / 待机打断
+		_play_anim("attack_" + _attack_facing)
+	elif velocity.x > MOVE_EPS:
+		_play_anim("walk_R")
+	elif velocity.x < -MOVE_EPS:
+		_play_anim("walk_L")
+	elif velocity.length() > MOVE_EPS:
+		# 仅上下移动：用当前朝向行走
+		_play_anim("walk_" + facing_dir)
+	else:
+		# 静止：按当前朝向待机
+		_play_anim("idle_" + facing_dir)
+
+
+## 仅在动画名变化时切换，避免每帧重置造成闪烁
+func _play_anim(anim_name: String) -> void:
+	if _anim_sprite.animation != anim_name:
+		_anim_sprite.play(anim_name)
 
 
 ## 释放剑气（默认基础攻击）
@@ -459,6 +573,7 @@ func _make_boon_record(boon: Dictionary) -> Dictionary:
 	return {
 		"id": boon.get("id", ""),
 		"boon_name": boon.get("boon_name", "?"),
+		"description": boon.get("description", ""),
 		"grade_name": boon.get("grade_name", ""),
 		"grade_color": boon.get("grade_color", "#FFFFFF"),
 		"stars": boon.get("stars", 0),
@@ -868,6 +983,9 @@ func has_alive_wolf() -> bool:
 
 ## 玩家统一受伤入口（妖兽攻击经此处理，便于灵兽护主减伤）
 func receive_damage(amount: int) -> void:
+	# 冲刺无敌帧：免疫本次伤害
+	if _invincible_timer > 0.0:
+		return
 	var final_damage: int = amount
 	# 灵兽护主：拥有存活灵狼时分担部分伤害
 	if beast_guard_enabled and has_alive_wolf():

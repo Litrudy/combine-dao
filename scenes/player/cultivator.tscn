@@ -1,7 +1,8 @@
-[gd_scene format=3 uid="uid://bxsygin1jwpxk"]
+[gd_scene load_steps=5 format=3 uid="uid://bxsygin1jwpxk"]
 
 [ext_resource type="Script" uid="uid://bu8mc7savfjtc" path="res://scenes/player/cultivator.gd" id="1_47jo8"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_pc6hu"]
+[ext_resource type="SpriteFrames" path="res://scenes/player/cultivator_frames.tres" id="3_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_47jo8"]
 size = Vector2(32, 32)
@@ -9,9 +10,12 @@ size = Vector2(32, 32)
 [node name="Cultivator" type="CharacterBody2D" unique_id=655860919 groups=["player"]]
 script = ExtResource("1_47jo8")
 
-[node name="Visual" type="Polygon2D" parent="." unique_id=2016236952]
-color = Color(0.3764706, 1, 1, 1)
-polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
+[node name="AnimatedSprite" type="AnimatedSprite2D" parent="." unique_id=2016236952]
+texture_filter = 1
+scale = Vector2(0.2, 0.2)
+sprite_frames = ExtResource("3_frames")
+animation = &"idle_R"
+autoplay = "idle_R"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=182583332]
 shape = SubResource("RectangleShape2D_47jo8")

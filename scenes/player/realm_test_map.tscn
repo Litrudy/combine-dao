@@ -66,6 +66,7 @@ motion_mode = 1
 shape = SubResource("RectangleShape2D_c7xc1")
 
 [node name="Visual2" type="Polygon2D" parent="Cultivator" unique_id=1021732152]
+visible = false
 color = Color(0.3764706, 1, 1, 1)
 polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 
