@@ -25,12 +25,20 @@ const EVENT_POOL: Array[Dictionary] = [
 ## 事件数量
 @export var event_count: int = 4
 
+## 秘境阶段
+enum RealmPhase { EXPLORE, BOSS_SPAWNED, CLEARED }
+var realm_phase: RealmPhase = RealmPhase.EXPLORE
+
 ## Boss 是否已召唤（保证只召唤一次）
 var boss_spawned: bool = false
+## Boss 是否已击败
+var boss_defeated: bool = false
 ## 本局是否已通关（避免重复触发）
 var run_completed: bool = false
-## 存活的初始小怪数量（仅初始小怪计入 Boss 召唤判断，事件怪 / Boss 护卫不计入）
-var _initial_alive: int = 0
+## 剩余初始小怪数量（仅初始小怪计入 Boss 召唤判断，事件怪 / Boss 护卫不计入）
+var initial_enemy_remaining: int = 0
+## 剩余可触发事件数量
+var event_remaining: int = 0
 
 ## 通关提示面板与生成点 / 运行时容器
 @onready var _clear_panel: CanvasLayer = $ClearPanel
@@ -71,7 +79,7 @@ func _spawn_initial_enemies() -> void:
 		if is_elite:
 			elite_count += 1
 		# 仅初始小怪计入 Boss 召唤判断
-		_initial_alive += 1
+		initial_enemy_remaining += 1
 		beast.tree_exited.connect(_on_initial_enemy_exited)
 
 	# 保证至少一只精英怪
@@ -85,7 +93,7 @@ func _spawn_initial_enemies() -> void:
 	print("本局生成精英怪数量：", elite_count)
 
 	# 兜底：若没有初始小怪，直接进入 Boss 环节
-	if _initial_alive == 0:
+	if initial_enemy_remaining == 0:
 		spawn_boss_encounter()
 
 
@@ -109,11 +117,20 @@ func _spawn_events() -> void:
 		var event: Node = entry["scene"].instantiate()
 		_runtime_events.add_child(event)
 		event.global_position = point.global_position
+		# 事件真正触发后更新剩余事件数（取消不触发、不发信号、不减少）
+		if event.has_signal("event_triggered"):
+			event.event_triggered.connect(_on_event_triggered)
 		spawned_counts[entry["id"]] = int(spawned_counts.get(entry["id"], 0)) + 1
 		made += 1
 		print("生成事件：", event.event_name, "，位置：", point.global_position)
 
+	event_remaining = made
 	print("本局生成事件数量：", made)
+
+
+## 事件触发回调：剩余事件数 -1
+func _on_event_triggered(_event_id: String) -> void:
+	event_remaining = max(0, event_remaining - 1)
 
 
 ## 从事件池随机挑选一个未达上限的事件条目；都达上限返回空字典
@@ -142,8 +159,8 @@ func _on_initial_enemy_exited() -> void:
 	# 通关 / 场景重载期间不再触发
 	if run_completed or not is_inside_tree():
 		return
-	_initial_alive -= 1
-	if not boss_spawned and _initial_alive <= 0:
+	initial_enemy_remaining = max(0, initial_enemy_remaining - 1)
+	if not boss_spawned and initial_enemy_remaining <= 0:
 		spawn_boss_encounter()
 
 
@@ -164,7 +181,10 @@ func spawn_boss_encounter() -> void:
 	spawn_beast_at(Vector2(-140, -420), randf() < elite_enemy_chance, false)
 	spawn_beast_at(Vector2(140, -420), randf() < elite_enemy_chance, false)
 
+	# 进入 Boss 阶段并提示
+	realm_phase = RealmPhase.BOSS_SPAWNED
 	print("小怪已清空，守墟妖王降临")
+	_show_notice("小怪已清空，守墟妖王降临")
 
 
 ## 通用妖兽生成（供事件 / Boss 护卫调用）
@@ -187,8 +207,45 @@ func _on_boss_defeated() -> void:
 	if run_completed:
 		return
 	run_completed = true
+	boss_defeated = true
+	realm_phase = RealmPhase.CLEARED
 	print("秘境试炼完成")
 	# 通关时确保游戏未处于暂停（防止此前面板暂停残留），以便 Enter 重开
 	get_tree().paused = false
-	# 显示通关提示
+	# 短提示 + 通关页面（两者并存）
+	_show_notice("秘境试炼完成")
 	_clear_panel.visible = true
+
+
+## 显示阶段短提示（找到 RealmNotice 节点调用）
+func _show_notice(text: String) -> void:
+	var notice: Node = get_tree().get_first_node_in_group("realm_notice")
+	if notice != null and notice.has_method("show_notice"):
+		notice.show_notice(text)
+
+
+## Boss 状态文本
+func _boss_status_text() -> String:
+	if boss_defeated:
+		return "已击败"
+	if boss_spawned:
+		return "已降临"
+	return "未降临"
+
+
+## 提供给 HUD 的秘境目标数据
+func get_realm_hud_data() -> Dictionary:
+	var phase_name: String = "explore"
+	match realm_phase:
+		RealmPhase.BOSS_SPAWNED:
+			phase_name = "boss_spawned"
+		RealmPhase.CLEARED:
+			phase_name = "cleared"
+		_:
+			phase_name = "explore"
+	return {
+		"initial_enemy_remaining": initial_enemy_remaining,
+		"event_remaining": event_remaining,
+		"boss_status": _boss_status_text(),
+		"realm_phase": phase_name,
+	}

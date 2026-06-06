@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://art/enemies/beast_walk.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="b0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 160, 128)
+
+[sub_resource type="AtlasTexture" id="b1"]
+atlas = ExtResource("1")
+region = Rect2(160, 0, 160, 128)
+
+[sub_resource type="AtlasTexture" id="b2"]
+atlas = ExtResource("1")
+region = Rect2(320, 0, 160, 128)
+
+[sub_resource type="AtlasTexture" id="b3"]
+atlas = ExtResource("1")
+region = Rect2(480, 0, 160, 128)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("b0")
+}, {
+"duration": 1.0,
+"texture": SubResource("b1")
+}, {
+"duration": 1.0,
+"texture": SubResource("b2")
+}, {
+"duration": 1.0,
+"texture": SubResource("b3")
+}],
+"loop": true,
+"name": &"beast_walk",
+"speed": 8.0
+}]

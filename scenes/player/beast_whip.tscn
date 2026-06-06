@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://jlenhufxu0to"]
+[gd_scene load_steps=4 format=3 uid="uid://jlenhufxu0to"]
 
 [ext_resource type="Script" path="res://scenes/player/beast_whip.gd" id="1_whip"]
+[ext_resource type="SpriteFrames" path="res://scenes/player/beast_whip_slash_frames.tres" id="2_whip_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_whip"]
 size = Vector2(90, 50)
@@ -8,9 +9,13 @@ size = Vector2(90, 50)
 [node name="BeastWhip" type="Area2D"]
 script = ExtResource("1_whip")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.85, 0.7, 0.3, 0.45)
-polygon = PackedVector2Array(0, -25, 90, -10, 90, 10, 0, 25)
+[node name="Visual" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(45, 0)
+scale = Vector2(0.5, 0.5)
+sprite_frames = ExtResource("2_whip_frames")
+animation = &"slash"
+autoplay = "slash"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(45, 0)

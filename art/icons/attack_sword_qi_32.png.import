@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bw3yscshejeq1"
-path="res://.godot/imported/sword_qi_fly-0.png-0ef562af20be5601de809104b6d563b8.ctex"
+uid="uid://baix8yogevgh6"
+path="res://.godot/imported/attack_sword_qi_32.png-6a7211ecdcde7dc020a2ba7a1ca08dbf.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/effects/sword_qi_fly-0.png"
-dest_files=["res://.godot/imported/sword_qi_fly-0.png-0ef562af20be5601de809104b6d563b8.ctex"]
+source_file="res://art/icons/attack_sword_qi_32.png"
+dest_files=["res://.godot/imported/attack_sword_qi_32.png-6a7211ecdcde7dc020a2ba7a1ca08dbf.ctex"]
 
 [params]
 

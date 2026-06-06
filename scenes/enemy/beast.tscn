@@ -1,8 +1,9 @@
-[gd_scene format=3 uid="uid://no6vpd7vpph5"]
+[gd_scene load_steps=5 format=3 uid="uid://no6vpd7vpph5"]
 
 [ext_resource type="Script" uid="uid://bv34p5uvt6tws" path="res://scenes/enemy/beast.gd" id="1_s6uuk"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 [ext_resource type="Script" path="res://scripts/components/status_effects.gd" id="3_status"]
+[ext_resource type="SpriteFrames" path="res://scenes/enemy/beast_frames.tres" id="4_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5m1xp"]
 size = Vector2(28, 28)
@@ -11,9 +12,12 @@ size = Vector2(28, 28)
 script = ExtResource("1_s6uuk")
 cultivation_reward = 3
 
-[node name="Visual" type="Polygon2D" parent="." unique_id=1926268240]
-color = Color(1, 0.0627451, 0.050980393, 1)
-polygon = PackedVector2Array(-14, -14, 14, -14, 14, 14, -14, 14)
+[node name="Visual" type="AnimatedSprite2D" parent="." unique_id=1926268240]
+texture_filter = 1
+scale = Vector2(0.35, 0.35)
+sprite_frames = ExtResource("4_frames")
+animation = &"beast_walk"
+autoplay = "beast_walk"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1742787428]
 shape = SubResource("RectangleShape2D_5m1xp")

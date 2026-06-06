@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://c0hud00000001"]
+[gd_scene load_steps=3 format=3 uid="uid://c0hud00000001"]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
+[ext_resource type="Texture2D" path="res://art/items/heavenly_stone_48.png" id="2_stone_icon"]
 
 [node name="HUD" type="CanvasLayer"]
 layer = 5
@@ -10,7 +11,7 @@ script = ExtResource("1_hud")
 offset_left = 8.0
 offset_top = 8.0
 offset_right = 320.0
-offset_bottom = 240.0
+offset_bottom = 330.0
 mouse_filter = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Panel"]
@@ -39,8 +40,21 @@ text = "修为：- / -"
 layout_mode = 2
 text = "继续修炼"
 
-[node name="StoneLabel" type="Label" parent="Panel/VBoxContainer"]
+[node name="StoneRow" type="HBoxContainer" parent="Panel/VBoxContainer"]
 layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="StoneIcon" type="TextureRect" parent="Panel/VBoxContainer/StoneRow"]
+texture_filter = 1
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+texture = ExtResource("2_stone_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StoneLabel" type="Label" parent="Panel/VBoxContainer/StoneRow"]
+layout_mode = 2
+size_flags_vertical = 1
 text = "天道石：0"
 
 [node name="PrimaryAttackLabel" type="Label" parent="Panel/VBoxContainer"]
@@ -65,3 +79,19 @@ show_percentage = false
 [node name="HintLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "按 Tab 查看构筑"
+
+[node name="RealmTargetLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "秘境目标："
+
+[node name="RealmEnemyLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "剩余小怪：-"
+
+[node name="RealmEventLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "剩余事件：-"
+
+[node name="RealmBossLabel" type="Label" parent="Panel/VBoxContainer"]
+layout_mode = 2
+text = "Boss：未降临"

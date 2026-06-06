@@ -23,6 +23,22 @@ var _module_buttons: Dictionary = {}
 ## 品阶颜色兜底
 const DEFAULT_COLOR: String = "#FFFFFF"
 
+## 基础攻击图标路径（剑气 / 毒镖 / 驭兽鞭）
+## 用运行时 load 而非 preload：避免素材未导入时整脚本解析失败；缺图则回退为无图标
+const ATTACK_ICON_PATHS: Dictionary = {
+	"sword_qi": "res://art/icons/attack_sword_qi_32.png",
+	"poison_dart": "res://art/icons/attack_poison_dart_32.png",
+	"beast_whip": "res://art/icons/attack_beast_whip_32.png",
+}
+## 技能图标路径（毒雾 / 召唤灵狼）
+const SKILL_ICON_PATHS: Dictionary = {
+	"poison_mist": "res://art/icons/skill_poison_mist_32.png",
+	"summon_wolf": "res://art/icons/skill_summon_wolf_32.png",
+}
+## 已加载图标缓存（避免每次刷新重复 load）
+var _attack_icon_cache: Dictionary = {}
+var _skill_icon_cache: Dictionary = {}
+
 
 func _ready() -> void:
 	# 暂停时仍可处理输入与按钮
@@ -220,6 +236,10 @@ func show_primary_attack_module() -> void:
 		button.text = label
 		button.disabled = not is_unlocked
 		button.focus_mode = Control.FOCUS_NONE
+		# 设置攻击图标（毒镖 / 驭兽鞭），无图标的攻击保持纯文字
+		var icon: Texture2D = _get_attack_icon(attack_id)
+		if icon != null:
+			button.icon = icon
 		if is_unlocked:
 			# 调用玩家方法切换基础攻击（仅切换已解锁项）
 			button.pressed.connect(_player.set_primary_attack.bind(attack_id))
@@ -242,12 +262,25 @@ func show_skill_slot_module() -> void:
 	if unlocked_skills.is_empty():
 		_add_text("暂无已解锁技能")
 		return
-	# 逐个技能：名称 + 说明 + 装备到 Q/E/F 按钮
+	# 逐个技能：名称（带图标）+ 说明 + 装备到 Q/E/F 按钮
 	for skill_id in unlocked_skills:
-		_add_text("%s：%s" % [
-			_player.get_skill_display_name(skill_id),
-			_player.get_skill_description(skill_id),
-		])
+		# 名称行：技能图标 + 名称
+		var name_row := HBoxContainer.new()
+		var icon: Texture2D = _get_skill_icon(skill_id)
+		if icon != null:
+			var tex_rect := TextureRect.new()
+			tex_rect.texture = icon
+			tex_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			tex_rect.custom_minimum_size = Vector2(24, 24)
+			tex_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			tex_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			name_row.add_child(tex_rect)
+		var name_label := Label.new()
+		name_label.text = _player.get_skill_display_name(skill_id)
+		name_row.add_child(name_label)
+		_content_container.add_child(name_row)
+		# 技能说明
+		_add_text(_player.get_skill_description(skill_id))
 		var row := HBoxContainer.new()
 		for slot_key in ["Q", "E", "F"]:
 			var button := Button.new()
@@ -333,3 +366,27 @@ func _add_text(text: String, color: Color = Color.WHITE) -> Label:
 func _add_heading(text: String) -> Label:
 	var label := _add_text("【%s】" % text, Color(0.7, 0.85, 1.0))
 	return label
+
+
+## 取基础攻击图标：按需 load 并缓存；无配置或素材未导入则返回 null（回退无图标）
+func _get_attack_icon(attack_id: String) -> Texture2D:
+	if not ATTACK_ICON_PATHS.has(attack_id):
+		return null
+	if _attack_icon_cache.has(attack_id):
+		return _attack_icon_cache[attack_id]
+	var path: String = ATTACK_ICON_PATHS[attack_id]
+	var tex: Texture2D = load(path) as Texture2D if ResourceLoader.exists(path) else null
+	_attack_icon_cache[attack_id] = tex
+	return tex
+
+
+## 取技能图标：按需 load 并缓存；无配置或素材未导入则返回 null（回退无图标）
+func _get_skill_icon(skill_id: String) -> Texture2D:
+	if not SKILL_ICON_PATHS.has(skill_id):
+		return null
+	if _skill_icon_cache.has(skill_id):
+		return _skill_icon_cache[skill_id]
+	var path: String = SKILL_ICON_PATHS[skill_id]
+	var tex: Texture2D = load(path) as Texture2D if ResourceLoader.exists(path) else null
+	_skill_icon_cache[skill_id] = tex
+	return tex

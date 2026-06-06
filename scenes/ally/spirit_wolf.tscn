@@ -1,17 +1,21 @@
-[gd_scene format=3 uid="uid://1wml5ru4qfto"]
+[gd_scene load_steps=4 format=3 uid="uid://1wml5ru4qfto"]
 
 [ext_resource type="Script" uid="uid://cpaq8a8j5r7cd" path="res://scenes/ally/spirit_wolf.gd" id="1_wolf"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
+[ext_resource type="SpriteFrames" path="res://scenes/ally/spirit_wolf_frames.tres" id="3_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wolf"]
 size = Vector2(20, 20)
 
-[node name="SpiritWolf" type="CharacterBody2D" unique_id=377059038]
+[node name="SpiritWolf" type="CharacterBody2D" unique_id=377059038 collision_layer=2 collision_mask=1]
 script = ExtResource("1_wolf")
 
-[node name="Visual" type="Polygon2D" parent="." unique_id=409549417]
-color = Color(0.5, 0.85, 0.45, 1)
-polygon = PackedVector2Array(-10, -10, 10, -10, 10, 10, -10, 10)
+[node name="Visual" type="AnimatedSprite2D" parent="." unique_id=409549417]
+texture_filter = 1
+scale = Vector2(0.3, 0.3)
+sprite_frames = ExtResource("3_frames")
+animation = &"wolf_walk"
+autoplay = "wolf_walk"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1963568670]
 shape = SubResource("RectangleShape2D_wolf")

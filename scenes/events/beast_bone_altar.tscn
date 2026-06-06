@@ -1,9 +1,13 @@
-[gd_scene format=3 uid="uid://g63u0puxto42"]
+[gd_scene load_steps=5 format=3 uid="uid://g63u0puxto42"]
 
 [ext_resource type="Script" path="res://scenes/events/beast_bone_altar.gd" id="1_altar"]
+[ext_resource type="Texture2D" path="res://art/events/beast_bone_altar.png" id="2_altar_tex"]
 
-[sub_resource type="CircleShape2D" id="range"]
-radius = 80.0
+[sub_resource type="RectangleShape2D" id="range"]
+size = Vector2(125, 100)
+
+[sub_resource type="RectangleShape2D" id="block"]
+size = Vector2(95, 62)
 
 [node name="BeastBoneAltar" type="Area2D" groups=["realm_event"]]
 script = ExtResource("1_altar")
@@ -14,6 +18,13 @@ description = "祭坛上堆满妖兽骸骨。献上一缕灵气后，将引来�
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("range")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.5, 0.28, 0.24, 1)
-polygon = PackedVector2Array(-28, -20, 28, -20, 28, 20, -28, 20)
+[node name="Blocker" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]
+shape = SubResource("block")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_altar_tex")
+hframes = 2
+frame = 0

@@ -1,12 +1,19 @@
-[gd_scene load_steps=15 format=3 uid="uid://dntw8owtqee8b"]
+[gd_scene load_steps=23 format=3 uid="uid://dntw8owtqee8b"]
 
 [ext_resource type="PackedScene" uid="uid://bxsygin1jwpxk" path="res://scenes/player/cultivator.tscn" id="1_c7xc1"]
+[ext_resource type="Texture2D" path="res://art/map/ground_realm.png" id="16_ground"]
+[ext_resource type="Texture2D" path="res://art/obstacles/obstacle_dead_tree.png" id="17_deadtree"]
+[ext_resource type="Texture2D" path="res://art/props/rock.png" id="18_rock"]
+[ext_resource type="Texture2D" path="res://art/props/realm_tree.png" id="19_tree"]
+[ext_resource type="Texture2D" path="res://art/props/stone_pillar.png" id="20_pillar"]
+[ext_resource type="Texture2D" path="res://art/props/ruins.png" id="21_ruins"]
 [ext_resource type="PackedScene" uid="uid://brxx56mq7grp5" path="res://scenes/ui/boon_choice_panel.tscn" id="3_boonui"]
 [ext_resource type="Script" uid="uid://cchcqvgciqawd" path="res://scenes/player/realm_test_map.gd" id="5_map"]
 [ext_resource type="PackedScene" uid="uid://c0hud00000001" path="res://scenes/ui/hud.tscn" id="6_hud"]
 [ext_resource type="PackedScene" uid="uid://ccsotjele625i" path="res://scenes/ui/build_panel.tscn" id="7_build"]
 [ext_resource type="PackedScene" uid="uid://noc2123byh26" path="res://scenes/ui/interact_prompt.tscn" id="8_prompt"]
 [ext_resource type="PackedScene" uid="uid://biavo3odxpleq" path="res://scenes/ui/event_choice_panel.tscn" id="12_evt"]
+[ext_resource type="PackedScene" uid="uid://c0realmnotice01" path="res://scenes/ui/realm_notice.tscn" id="15_notice"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_c7xc1"]
 size = Vector2(32, 32)
@@ -29,14 +36,20 @@ size = Vector2(64, 150)
 [sub_resource type="RectangleShape2D" id="ObRuin"]
 size = Vector2(180, 56)
 
+[sub_resource type="RectangleShape2D" id="ObDeadTree"]
+size = Vector2(40, 55)
+
 [node name="RealmTestMap" type="Node2D" unique_id=1610993027]
 script = ExtResource("5_map")
 
 [node name="MapRoot" type="Node2D" parent="."]
 
-[node name="Ground" type="Polygon2D" parent="MapRoot"]
-color = Color(0.08, 0.09, 0.11, 1)
-polygon = PackedVector2Array(-1200, -800, 1200, -800, 1200, 800, -1200, 800)
+[node name="Ground" type="Sprite2D" parent="MapRoot"]
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("16_ground")
+region_enabled = true
+region_rect = Rect2(0, 0, 2400, 1600)
 
 [node name="Boundary" type="Node2D" parent="MapRoot"]
 
@@ -88,9 +101,11 @@ position = Vector2(-600, -300)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Rock1"]
 shape = SubResource("ObRock")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Rock1"]
-color = Color(0.45, 0.45, 0.47, 1)
-polygon = PackedVector2Array(-55, -55, 55, -55, 55, 55, -55, 55)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Rock1"]
+texture_filter = 1
+texture = ExtResource("18_rock")
+hframes = 3
+frame = 0
 
 [node name="Tree1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(-250, -150)
@@ -98,9 +113,12 @@ position = Vector2(-250, -150)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Tree1"]
 shape = SubResource("ObTree")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Tree1"]
-color = Color(0.32, 0.22, 0.13, 1)
-polygon = PackedVector2Array(-35, -50, 35, -50, 35, 50, -35, 50)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Tree1"]
+texture_filter = 1
+scale = Vector2(0.55, 0.55)
+texture = ExtResource("19_tree")
+hframes = 3
+frame = 0
 
 [node name="Pillar1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(250, -250)
@@ -108,9 +126,12 @@ position = Vector2(250, -250)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Pillar1"]
 shape = SubResource("ObPillar")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Pillar1"]
-color = Color(0.4, 0.5, 0.6, 1)
-polygon = PackedVector2Array(-32, -75, 32, -75, 32, 75, -32, 75)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Pillar1"]
+texture_filter = 1
+scale = Vector2(0.78, 0.78)
+texture = ExtResource("20_pillar")
+hframes = 2
+frame = 0
 
 [node name="Ruin1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(650, -150)
@@ -118,9 +139,12 @@ position = Vector2(650, -150)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Ruin1"]
 shape = SubResource("ObRuin")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Ruin1"]
-color = Color(0.3, 0.28, 0.26, 1)
-polygon = PackedVector2Array(-90, -28, 90, -28, 90, 28, -90, 28)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Ruin1"]
+texture_filter = 1
+scale = Vector2(1.1, 1.1)
+texture = ExtResource("21_ruins")
+hframes = 2
+frame = 0
 
 [node name="Rock2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(-700, 250)
@@ -128,9 +152,11 @@ position = Vector2(-700, 250)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Rock2"]
 shape = SubResource("ObRock")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Rock2"]
-color = Color(0.45, 0.45, 0.47, 1)
-polygon = PackedVector2Array(-55, -55, 55, -55, 55, 55, -55, 55)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Rock2"]
+texture_filter = 1
+texture = ExtResource("18_rock")
+hframes = 3
+frame = 1
 
 [node name="Tree2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(-300, 350)
@@ -138,9 +164,12 @@ position = Vector2(-300, 350)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Tree2"]
 shape = SubResource("ObTree")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Tree2"]
-color = Color(0.32, 0.22, 0.13, 1)
-polygon = PackedVector2Array(-35, -50, 35, -50, 35, 50, -35, 50)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Tree2"]
+texture_filter = 1
+scale = Vector2(0.55, 0.55)
+texture = ExtResource("19_tree")
+hframes = 3
+frame = 1
 
 [node name="Pillar2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(250, 250)
@@ -148,9 +177,12 @@ position = Vector2(250, 250)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Pillar2"]
 shape = SubResource("ObPillar")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Pillar2"]
-color = Color(0.4, 0.5, 0.6, 1)
-polygon = PackedVector2Array(-32, -75, 32, -75, 32, 75, -32, 75)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Pillar2"]
+texture_filter = 1
+scale = Vector2(0.78, 0.78)
+texture = ExtResource("20_pillar")
+hframes = 2
+frame = 1
 
 [node name="Ruin2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(650, 350)
@@ -158,9 +190,12 @@ position = Vector2(650, 350)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Ruin2"]
 shape = SubResource("ObRuin")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Ruin2"]
-color = Color(0.3, 0.28, 0.26, 1)
-polygon = PackedVector2Array(-90, -28, 90, -28, 90, 28, -90, 28)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Ruin2"]
+texture_filter = 1
+scale = Vector2(1.1, 1.1)
+texture = ExtResource("21_ruins")
+hframes = 2
+frame = 1
 
 [node name="Rock3" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(0, 0)
@@ -168,9 +203,11 @@ position = Vector2(0, 0)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Rock3"]
 shape = SubResource("ObRock")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Rock3"]
-color = Color(0.45, 0.45, 0.47, 1)
-polygon = PackedVector2Array(-55, -55, 55, -55, 55, 55, -55, 55)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Rock3"]
+texture_filter = 1
+texture = ExtResource("18_rock")
+hframes = 3
+frame = 2
 
 [node name="Tree3" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
 position = Vector2(500, 0)
@@ -178,9 +215,36 @@ position = Vector2(500, 0)
 [node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/Tree3"]
 shape = SubResource("ObTree")
 
-[node name="Visual" type="Polygon2D" parent="MapRoot/Obstacles/Tree3"]
-color = Color(0.32, 0.22, 0.13, 1)
-polygon = PackedVector2Array(-35, -50, 35, -50, 35, 50, -35, 50)
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/Tree3"]
+texture_filter = 1
+scale = Vector2(0.55, 0.55)
+texture = ExtResource("19_tree")
+hframes = 3
+frame = 2
+
+[node name="DeadTree1" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(-450, -450)
+
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/DeadTree1"]
+texture_filter = 1
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("17_deadtree")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/DeadTree1"]
+position = Vector2(0, 28)
+shape = SubResource("ObDeadTree")
+
+[node name="DeadTree2" type="StaticBody2D" parent="MapRoot/Obstacles" groups=["map_obstacle"]]
+position = Vector2(450, 200)
+
+[node name="Visual" type="Sprite2D" parent="MapRoot/Obstacles/DeadTree2"]
+texture_filter = 1
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("17_deadtree")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="MapRoot/Obstacles/DeadTree2"]
+position = Vector2(0, 28)
+shape = SubResource("ObDeadTree")
 
 [node name="ClearPanel" type="CanvasLayer" parent="." unique_id=1745435692]
 layer = 20
@@ -237,6 +301,8 @@ polygon = PackedVector2Array(-16, -16, 16, -16, 16, 16, -16, 16)
 [node name="InteractPrompt" parent="." instance=ExtResource("8_prompt")]
 
 [node name="EventChoicePanel" parent="." instance=ExtResource("12_evt")]
+
+[node name="RealmNotice" parent="." instance=ExtResource("15_notice")]
 
 [node name="RuntimeEnemies" type="Node2D" parent="."]
 

@@ -6,11 +6,14 @@ extends CanvasLayer
 @onready var _hp_label: Label = $Panel/VBoxContainer/HpLabel
 @onready var _cultivation_label: Label = $Panel/VBoxContainer/CultivationLabel
 @onready var _breakthrough_label: Label = $Panel/VBoxContainer/BreakthroughLabel
-@onready var _stone_label: Label = $Panel/VBoxContainer/StoneLabel
+@onready var _stone_label: Label = $Panel/VBoxContainer/StoneRow/StoneLabel
 @onready var _primary_attack_label: Label = $Panel/VBoxContainer/PrimaryAttackLabel
 @onready var _skill_slot_label: Label = $Panel/VBoxContainer/SkillSlotLabel
 @onready var _dash_label: Label = $Panel/VBoxContainer/DashLabel
 @onready var _dash_cooldown_bar: ProgressBar = $Panel/VBoxContainer/DashCooldownBar
+@onready var _realm_enemy_label: Label = $Panel/VBoxContainer/RealmEnemyLabel
+@onready var _realm_event_label: Label = $Panel/VBoxContainer/RealmEventLabel
+@onready var _realm_boss_label: Label = $Panel/VBoxContainer/RealmBossLabel
 
 ## 目标玩家
 var _player: Node = null
@@ -21,11 +24,24 @@ func _ready() -> void:
 	_connect_player.call_deferred()
 
 
-## 身法冷却持续变化，单独每帧刷新（不重建整个 HUD）
+## 身法冷却 / 秘境目标持续变化，单独每帧刷新（不重建整个 HUD）
 func _process(_delta: float) -> void:
-	if not is_instance_valid(_player) or not _player.has_method("get_hud_data"):
+	if is_instance_valid(_player) and _player.has_method("get_hud_data"):
+		_update_dash(_player.get_hud_data())
+	_update_realm_target()
+
+
+## 刷新秘境目标显示（剩余小怪 / 剩余事件 / Boss 状态）
+func _update_realm_target() -> void:
+	if _realm_enemy_label == null:
 		return
-	_update_dash(_player.get_hud_data())
+	var map: Node = get_tree().current_scene
+	if map == null or not map.has_method("get_realm_hud_data"):
+		return
+	var data: Dictionary = map.get_realm_hud_data()
+	_realm_enemy_label.text = "剩余小怪：%d" % data.get("initial_enemy_remaining", 0)
+	_realm_event_label.text = "剩余事件：%d" % data.get("event_remaining", 0)
+	_realm_boss_label.text = "Boss：%s" % data.get("boss_status", "未降临")
 
 
 ## 查找玩家并连接其状态信号

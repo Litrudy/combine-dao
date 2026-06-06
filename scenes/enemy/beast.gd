@@ -57,6 +57,8 @@ var _elite_applied: bool = false
 
 ## 自身气血组件（子节点 Vitals）
 @onready var vitals: Vitals = $Vitals
+## 动画显示节点
+@onready var _anim: AnimatedSprite2D = $Visual
 
 
 func _ready() -> void:
@@ -91,9 +93,9 @@ func _apply_elite_buff() -> void:
 	vitals.set_max_qi_blood(vitals.max_qi_blood * 2, true)
 	attack_damage = int(attack_damage * 1.5)
 	move_speed *= 1.1
-	var visual := get_node_or_null("Visual")
-	if visual != null:
-		visual.color = Color(1.0, 0.84, 0.0)
+	# 精英怪染金色（AnimatedSprite2D 用 modulate 而非 color）
+	if _anim != null:
+		_anim.modulate = Color(1.0, 0.84, 0.0)
 	print("精英妖兽出现")
 
 
@@ -134,6 +136,10 @@ func _physics_process(delta: float) -> void:
 		_:
 			# IDLE：原地待命，不追击不攻击
 			velocity = Vector2.ZERO
+
+	# 根据水平移动方向翻转朝向（beast_walk 素材默认朝左，故向右移动时翻转）
+	if _anim != null and absf(velocity.x) > 1.0:
+		_anim.flip_h = velocity.x > 0.0
 
 	move_and_slide()
 

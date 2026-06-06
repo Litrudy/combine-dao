@@ -1,9 +1,13 @@
-[gd_scene format=3 uid="uid://b8ynuhwupdf5i"]
+[gd_scene load_steps=5 format=3 uid="uid://b8ynuhwupdf5i"]
 
 [ext_resource type="Script" path="res://scenes/events/broken_sword_tomb.gd" id="1_tomb"]
+[ext_resource type="Texture2D" path="res://art/events/broken_sword_tomb.png" id="2_tomb_tex"]
 
-[sub_resource type="CircleShape2D" id="range"]
-radius = 80.0
+[sub_resource type="RectangleShape2D" id="range"]
+size = Vector2(115, 90)
+
+[sub_resource type="RectangleShape2D" id="block"]
+size = Vector2(88, 55)
 
 [node name="BrokenSwordTomb" type="Area2D" groups=["realm_event"]]
 script = ExtResource("1_tomb")
@@ -14,6 +18,13 @@ description = "一座残破剑冢散发微弱剑意。你可以取走残余灵�
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("range")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.32, 0.45, 0.5, 1)
-polygon = PackedVector2Array(-16, -34, 16, -34, 16, 34, -16, 34)
+[node name="Blocker" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]
+shape = SubResource("block")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_tomb_tex")
+hframes = 2
+frame = 0

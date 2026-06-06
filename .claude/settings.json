@@ -3,7 +3,10 @@
     "allow": [
       "Bash(cd /e/project/combine-dao)",
       "Bash(grep -rn \"_release_sword_qi\" scenes/ scripts/)",
-      "Bash(python -)"
+      "Bash(python -)",
+      "Bash(command -v godot)",
+      "Bash(godot --version)",
+      "Bash(echo \"godot found: $\\(godot --version\\)\")"
     ]
   }
 }

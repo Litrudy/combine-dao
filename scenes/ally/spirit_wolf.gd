@@ -44,6 +44,8 @@ var _attack_timer: float = 0.0
 
 ## 自身气血组件（子节点 Vitals）
 @onready var vitals: Vitals = $Vitals
+## 动画显示节点
+@onready var _anim: AnimatedSprite2D = $Visual
 
 
 func _ready() -> void:
@@ -105,6 +107,7 @@ func _physics_process(delta: float) -> void:
 			# FOLLOW / RETURN：跟随玩家
 			_follow_owner()
 
+	_update_animation()
 	move_and_slide()
 
 
@@ -115,23 +118,29 @@ func _update_wolf_state() -> void:
 
 	# 离主人过远：强制放弃目标并返回（避免越追越远）
 	if has_owner and owner_dist > max_distance_from_owner:
-		current_target = null
+		_clear_target()
 		wolf_state = WolfState.RETURN
 
 	match wolf_state:
 		WolfState.FOLLOW:
 			# 跟随时在寻敌范围内发现敌人则追击
 			var enemy: Node2D = _find_nearest_enemy()
-			if is_instance_valid(enemy):
-				current_target = enemy
+			if enemy != null:
+				_set_target(enemy)
 				wolf_state = WolfState.CHASE
 		WolfState.CHASE, WolfState.ATTACK:
-			# 目标失效 / 死亡 / 超出脱战范围则放弃并返回
-			if not _is_target_valid(current_target) \
-					or global_position.distance_to(current_target.global_position) > lose_target_range:
-				current_target = null
+			# 目标无效（已释放 / 离树 / 死亡）则立即放弃，避免后续访问已释放对象
+			if not _is_target_valid(current_target):
+				_clear_target()
 				wolf_state = WolfState.RETURN
-			elif global_position.distance_to(current_target.global_position) <= attack_range:
+				return
+			# 目标有效后才访问其位置
+			var distance: float = global_position.distance_to(current_target.global_position)
+			if distance > lose_target_range:
+				# 超出脱战范围
+				_clear_target()
+				wolf_state = WolfState.RETURN
+			elif distance <= attack_range:
 				wolf_state = WolfState.ATTACK
 			else:
 				wolf_state = WolfState.CHASE
@@ -142,17 +151,19 @@ func _update_wolf_state() -> void:
 			# 返程途中（且未离主人过远）发现敌人可重新交战
 			elif owner_dist <= max_distance_from_owner:
 				var enemy: Node2D = _find_nearest_enemy()
-				if is_instance_valid(enemy):
-					current_target = enemy
+				if enemy != null:
+					_set_target(enemy)
 					wolf_state = WolfState.CHASE
 
 
-## 寻找 detection_range 内最近的存活 "enemy"
+## 寻找 detection_range 内最近的存活 "enemy"（过滤空 / 已释放 / 离树 / 死亡）
 func _find_nearest_enemy() -> Node2D:
 	var nearest: Node2D = null
 	var nearest_distance: float = INF
 	for enemy in get_tree().get_nodes_in_group("enemy"):
-		if not is_instance_valid(enemy) or not enemy is Node2D:
+		if enemy == null or not is_instance_valid(enemy):
+			continue
+		if not enemy is Node2D or not enemy.is_inside_tree():
 			continue
 		# 跳过已死亡敌人
 		var enemy_vitals: Vitals = enemy.get_node_or_null("Vitals") as Vitals
@@ -166,9 +177,41 @@ func _find_nearest_enemy() -> Node2D:
 	return nearest
 
 
-## 目标是否仍然有效（存在于场景树且未死亡）
-func _is_target_valid(target: Node2D) -> bool:
-	if not is_instance_valid(target) or not target.is_inside_tree():
+## 锁定目标：连接其 tree_exited，目标离场即清空（避免重复连接）
+func _set_target(enemy: Node2D) -> void:
+	if current_target == enemy:
+		return
+	# 先断开旧目标的连接
+	_clear_target()
+	current_target = enemy
+	if is_instance_valid(enemy) and not enemy.tree_exited.is_connected(_on_target_tree_exited):
+		enemy.tree_exited.connect(_on_target_tree_exited)
+
+
+## 清空当前目标并断开其信号
+func _clear_target() -> void:
+	if is_instance_valid(current_target) and current_target.tree_exited.is_connected(_on_target_tree_exited):
+		current_target.tree_exited.disconnect(_on_target_tree_exited)
+	current_target = null
+
+
+## 目标离开场景树（死亡 / queue_free）回调：清空目标并返回主人
+func _on_target_tree_exited() -> void:
+	# 不访问已释放对象，直接清空
+	current_target = null
+	wolf_state = WolfState.RETURN
+
+
+## 目标是否仍然有效（未释放、在场景树、未死亡）
+## 参数用 Object（而非 Node2D）：已释放对象传入 Node2D 形参会在类型检查阶段直接报错
+func _is_target_valid(target: Object) -> bool:
+	# 第一步：空 / 已释放对象直接判无效（不可访问其任何成员）
+	if target == null:
+		return false
+	if not is_instance_valid(target):
+		return false
+	# 确认有效后才能访问成员
+	if not target.is_inside_tree():
 		return false
 	var target_vitals: Vitals = target.get_node_or_null("Vitals") as Vitals
 	if target_vitals != null and target_vitals.is_dead():
@@ -191,6 +234,23 @@ func _follow_owner() -> void:
 		velocity = global_position.direction_to(target_pos) * (move_speed * 0.5)
 	else:
 		velocity = Vector2.ZERO
+
+
+## 动画：攻击播放中不打断，否则循环行走；按目标 / 速度翻转朝向
+func _update_animation() -> void:
+	if _anim == null:
+		return
+	# 朝向：优先看目标方向，其次看移动方向（素材默认朝右）
+	if is_instance_valid(current_target):
+		_anim.flip_h = current_target.global_position.x < global_position.x
+	elif absf(velocity.x) > 1.0:
+		_anim.flip_h = velocity.x < 0.0
+	# 攻击动画播放中不打断
+	if _anim.animation == "wolf_attack" and _anim.is_playing():
+		return
+	# 其余情况播放行走（攻击播放完会自动回到此处）
+	if _anim.animation != "wolf_walk" or not _anim.is_playing():
+		_anim.play("wolf_walk")
 
 
 ## 调试：绘制寻敌范围圈
@@ -219,3 +279,7 @@ func _try_attack(target: Node2D) -> void:
 	# 重置冷却：实际冷却 = 基础冷却 / 攻速倍率
 	var effective_cooldown: float = base_attack_cooldown / max(attack_speed_multiplier, 0.01)
 	_attack_timer = effective_cooldown
+
+	# 播放攻击动画（不循环，播放完由 _update_animation 回到行走）
+	if _anim != null:
+		_anim.play("wolf_attack")

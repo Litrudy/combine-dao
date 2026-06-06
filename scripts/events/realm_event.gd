@@ -58,14 +58,15 @@ func trigger_event(player: Node) -> bool:
 	mark_used()
 	# 应用子类效果
 	apply_event_effect(player)
-	event_triggered.emit(event_id)
 	return true
 
 
-## 标记事件为已使用并置灰（风险事件在玩家确认提交选项后调用）
+## 标记事件为已使用、发出触发信号并置灰
+## （即时事件经 trigger_event 调用；风险事件在玩家确认提交选项后调用，取消则不调用）
 func mark_used() -> void:
 	used = true
 	current_player = null
+	event_triggered.emit(event_id)
 	_apply_used_visual()
 
 
@@ -74,8 +75,20 @@ func apply_event_effect(_player: Node) -> void:
 	pass
 
 
-## 触发后视觉变灰并停止范围检测
+## 触发后切换为「已使用」外观并停止范围检测
+## 双帧素材（Sprite2D，hframes/vframes>1）切到最后一帧表示失效；
+## 无双帧素材的占位事件（Polygon2D）则退回整体置灰。
 func _apply_used_visual() -> void:
-	modulate = Color(0.4, 0.4, 0.4, 0.5)
+	var visual: Node = get_node_or_null("Visual")
+	if visual is Sprite2D:
+		var spr: Sprite2D = visual as Sprite2D
+		var frame_count: int = maxi(spr.hframes, 1) * maxi(spr.vframes, 1)
+		if frame_count > 1:
+			# 切到最后一帧（frame 1）：已使用 / 失效状态
+			spr.frame = frame_count - 1
+		else:
+			modulate = Color(0.4, 0.4, 0.4, 0.5)
+	else:
+		modulate = Color(0.4, 0.4, 0.4, 0.5)
 	# 延迟关闭监测，避免在信号回调中修改物理状态
 	set_deferred("monitoring", false)

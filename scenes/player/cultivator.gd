@@ -186,6 +186,15 @@ var _dash_cd_timer: float = 0.0
 var _dash_dir: Vector2 = Vector2.ZERO
 ## 无敌帧剩余时间（>0 时免疫伤害）
 var _invincible_timer: float = 0.0
+
+## ===== 表现层特效（纯视觉，不参与碰撞 / 移动 / 伤害 / 无敌计时）=====
+## 冲刺残影 / 无敌闪光场景路径：运行时按需 load 并缓存；缺失或未导入则跳过
+const DASH_TRAIL_SCENE_PATH: String = "res://scenes/effects/dash_trail.tscn"
+const INVINCIBLE_FLASH_SCENE_PATH: String = "res://scenes/effects/invincible_flash.tscn"
+var _dash_trail_scene: PackedScene = null
+var _invincible_flash_scene: PackedScene = null
+var _dash_trail_loaded: bool = false
+var _invincible_flash_loaded: bool = false
 ## 当前横向朝向（"R" 右 / "L" 左）：横向移动时更新，纯纵向 / 静止时保持
 var facing_dir: String = "R"
 ## 攻击 / 冲刺时锁定的朝向（攻击看鼠标、冲刺看冲刺方向）
@@ -392,6 +401,46 @@ func _try_dash() -> void:
 	_dash_cd_timer = dash_cooldown
 	# 冲刺前段获得无敌帧
 	_invincible_timer = dash_invincible_time
+	# 表现层：冲刺残影 + 无敌闪光（纯视觉，不影响上面任何冲刺 / 无敌逻辑）
+	_play_dash_trail()
+	_play_invincible_flash()
+
+
+## 播放冲刺残影：在世界中冲刺起点生成一次性特效，朝向冲刺方向，播放完自销毁
+func _play_dash_trail() -> void:
+	# 懒加载场景（缺失 / 未导入则跳过，绝不影响冲刺逻辑）
+	if not _dash_trail_loaded:
+		_dash_trail_loaded = true
+		if ResourceLoader.exists(DASH_TRAIL_SCENE_PATH):
+			_dash_trail_scene = load(DASH_TRAIL_SCENE_PATH) as PackedScene
+	if _dash_trail_scene == null:
+		return
+	var fx: Node2D = _dash_trail_scene.instantiate() as Node2D
+	if fx == null:
+		return
+	# 放到世界（与玩家同级）作为留在原地的残影，而非跟随玩家
+	var parent: Node = get_parent()
+	if parent == null:
+		parent = self
+	parent.add_child(fx)
+	fx.global_position = global_position
+	fx.rotation = _dash_dir.angle()
+
+
+## 播放无敌闪光：作为额外视觉叠加层挂在角色上，播放完自销毁（不改无敌判定）
+func _play_invincible_flash() -> void:
+	if not _invincible_flash_loaded:
+		_invincible_flash_loaded = true
+		if ResourceLoader.exists(INVINCIBLE_FLASH_SCENE_PATH):
+			_invincible_flash_scene = load(INVINCIBLE_FLASH_SCENE_PATH) as PackedScene
+	if _invincible_flash_scene == null:
+		return
+	var fx: Node2D = _invincible_flash_scene.instantiate() as Node2D
+	if fx == null:
+		return
+	# 作为子节点跟随角色，覆盖在身上；自身播放完会 queue_free
+	add_child(fx)
+	fx.position = Vector2.ZERO
 
 
 ## 根据当前状态播放方向动画（优先级：冲刺 > 攻击 > 行走 > 待机）

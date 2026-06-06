@@ -68,6 +68,8 @@ var _berserk_triggered: bool = false
 
 ## 自身气血组件
 @onready var vitals: Vitals = $Vitals
+## 动画显示节点
+@onready var _anim: AnimatedSprite2D = $Visual
 
 
 func _ready() -> void:
@@ -111,6 +113,10 @@ func _physics_process(delta: float) -> void:
 			_process_chase(delta)
 		State.CHARGE:
 			_process_charge(delta)
+
+	# 根据水平移动方向翻转朝向（boss_guardian_walk 素材默认朝左，故向右移动时翻转）
+	if _anim != null and absf(velocity.x) > 1.0:
+		_anim.flip_h = velocity.x > 0.0
 
 	move_and_slide()
 

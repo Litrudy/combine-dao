@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" load_steps=6 format=3]
+
+[ext_resource type="Texture2D" path="res://art/enemies/boss_guardian_walk.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="g0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 224, 192)
+
+[sub_resource type="AtlasTexture" id="g1"]
+atlas = ExtResource("1")
+region = Rect2(224, 0, 224, 192)
+
+[sub_resource type="AtlasTexture" id="g2"]
+atlas = ExtResource("1")
+region = Rect2(448, 0, 224, 192)
+
+[sub_resource type="AtlasTexture" id="g3"]
+atlas = ExtResource("1")
+region = Rect2(672, 0, 224, 192)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("g0")
+}, {
+"duration": 1.0,
+"texture": SubResource("g1")
+}, {
+"duration": 1.0,
+"texture": SubResource("g2")
+}, {
+"duration": 1.0,
+"texture": SubResource("g3")
+}],
+"loop": true,
+"name": &"boss_guardian_walk",
+"speed": 6.0
+}]

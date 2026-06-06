@@ -1,9 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://c0spiritspring01"]
+[gd_scene load_steps=5 format=3 uid="uid://c0spiritspring01"]
 
 [ext_resource type="Script" path="res://scenes/events/spirit_spring.gd" id="1_spring"]
+[ext_resource type="Texture2D" path="res://art/events/spirit_spring.png" id="2_spring_tex"]
 
-[sub_resource type="CircleShape2D" id="range"]
-radius = 80.0
+[sub_resource type="RectangleShape2D" id="range"]
+size = Vector2(100, 80)
+
+[sub_resource type="RectangleShape2D" id="block"]
+size = Vector2(80, 52)
 
 [node name="SpiritSpring" type="Area2D" groups=["realm_event"]]
 script = ExtResource("1_spring")
@@ -14,6 +18,13 @@ description = "回复部分气血。"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("range")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.2, 0.5, 1, 1)
-polygon = PackedVector2Array(-24, -24, 24, -24, 24, 24, -24, 24)
+[node name="Blocker" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]
+shape = SubResource("block")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_spring_tex")
+hframes = 2
+frame = 0

@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://art/effects/invincible_flash.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="i0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="i1"]
+atlas = ExtResource("1")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="i2"]
+atlas = ExtResource("1")
+region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="i3"]
+atlas = ExtResource("1")
+region = Rect2(384, 0, 128, 128)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("i0")
+}, {
+"duration": 1.0,
+"texture": SubResource("i1")
+}, {
+"duration": 1.0,
+"texture": SubResource("i2")
+}, {
+"duration": 1.0,
+"texture": SubResource("i3")
+}],
+"loop": false,
+"name": &"play",
+"speed": 13.0
+}]

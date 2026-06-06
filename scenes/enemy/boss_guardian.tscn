@@ -1,8 +1,9 @@
-[gd_scene format=3 uid="uid://b53vwoepd3csi"]
+[gd_scene load_steps=5 format=3 uid="uid://b53vwoepd3csi"]
 
 [ext_resource type="Script" path="res://scenes/enemy/boss_guardian.gd" id="1_boss"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 [ext_resource type="Script" path="res://scripts/components/status_effects.gd" id="3_status"]
+[ext_resource type="SpriteFrames" path="res://scenes/enemy/boss_guardian_frames.tres" id="4_frames"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_boss"]
 size = Vector2(48, 48)
@@ -10,9 +11,12 @@ size = Vector2(48, 48)
 [node name="BossGuardian" type="CharacterBody2D" groups=["enemy", "boss"]]
 script = ExtResource("1_boss")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.5, 0.1, 0.6, 1)
-polygon = PackedVector2Array(-24, -24, 24, -24, 24, 24, -24, 24)
+[node name="Visual" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.5, 0.5)
+sprite_frames = ExtResource("4_frames")
+animation = &"boss_guardian_walk"
+autoplay = "boss_guardian_walk"
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("RectangleShape2D_boss")

@@ -1,9 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://c0heavenlychest1"]
+[gd_scene load_steps=5 format=3 uid="uid://c0heavenlychest1"]
 
 [ext_resource type="Script" path="res://scenes/events/heavenly_chest.gd" id="1_chest"]
+[ext_resource type="Texture2D" path="res://art/events/heavenly_chest.png" id="2_chest_tex"]
 
-[sub_resource type="CircleShape2D" id="range"]
-radius = 80.0
+[sub_resource type="RectangleShape2D" id="range"]
+size = Vector2(80, 52)
+
+[sub_resource type="RectangleShape2D" id="block"]
+size = Vector2(52, 32)
 
 [node name="HeavenlyChest" type="Area2D" groups=["realm_event"]]
 script = ExtResource("1_chest")
@@ -14,6 +18,14 @@ description = "获得天道石。"
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("range")
 
-[node name="Visual" type="Polygon2D" parent="."]
-color = Color(0.95, 0.78, 0.2, 1)
-polygon = PackedVector2Array(-26, -18, 26, -18, 26, 18, -26, 18)
+[node name="Blocker" type="StaticBody2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]
+shape = SubResource("block")
+
+[node name="Visual" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(0.48, 0.48)
+texture = ExtResource("2_chest_tex")
+hframes = 2
+frame = 0
