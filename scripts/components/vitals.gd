@@ -20,25 +20,48 @@ var current_qi_blood: int
 ## 是否已死亡，用于保证 died 信号只触发一次
 var _is_dead: bool = false
 
+## 最近一次受伤的类型（"normal" / "poison" / "summon"），供反馈系统着色伤害数字。
+## 仅作展示用，不影响任何伤害结算。
+var last_damage_type: String = "normal"
+
 
 func _ready() -> void:
 	# 运行时将当前气血初始化为上限
 	current_qi_blood = max_qi_blood
 
 
-## 受到伤害
-func take_damage(amount: int) -> void:
+## 受到伤害。damage_type 仅用于反馈着色（默认 "normal"），不参与任何结算。
+func take_damage(amount: int, damage_type: String = "normal") -> void:
 	# 已死亡或伤害无效（<=0）时忽略
 	if _is_dead or amount <= 0:
 		return
 
+	# 承伤倍率（如蛊咒）：读取同级 StatusEffects，无则为 1.0；作用于所有伤害源
+	var final_amount: int = amount
+	var mult: float = _get_damage_taken_multiplier()
+	if mult != 1.0:
+		final_amount = max(1, int(round(amount * mult)))
+
+	# 记录伤害类型（供反馈系统读取）
+	last_damage_type = damage_type
 	# 扣除气血，并限制不低于 0
-	current_qi_blood = max(current_qi_blood - amount, 0)
-	damaged.emit(amount, current_qi_blood)
+	current_qi_blood = max(current_qi_blood - final_amount, 0)
+	damaged.emit(final_amount, current_qi_blood)
 
 	# 气血归零则判定死亡
 	if current_qi_blood == 0:
 		_die()
+
+
+## 读取同级 StatusEffects 的承伤倍率（无该组件 / 无该方法时为 1.0）
+func _get_damage_taken_multiplier() -> float:
+	var host: Node = get_parent()
+	if host == null:
+		return 1.0
+	var status: Node = host.get_node_or_null("StatusEffects")
+	if status != null and status.has_method("get_damage_taken_multiplier"):
+		return status.get_damage_taken_multiplier()
+	return 1.0
 
 
 ## 治疗回复

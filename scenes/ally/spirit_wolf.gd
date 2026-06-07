@@ -42,6 +42,15 @@ var follow_offset: Vector2 = Vector2.ZERO
 ## 当前攻击冷却剩余时间，<=0 时可再次攻击
 var _attack_timer: float = 0.0
 
+## ===== 第五阶段：狼王 / 无敌 / 集火 =====
+## 是否为狼王（视觉放大 + 标志）
+var is_alpha_wolf: bool = false
+## 临时无敌剩余时间（天品「换位无敌」等）
+var _invincible_timer: float = 0.0
+## 集火：在该点附近优先选择目标（天品「猛兽腾跃·集火」）
+var _focus_timer: float = 0.0
+var _focus_pos: Vector2 = Vector2.ZERO
+
 ## 自身气血组件（子节点 Vitals）
 @onready var vitals: Vitals = $Vitals
 ## 动画显示节点
@@ -63,17 +72,59 @@ func _ready() -> void:
 		queue_redraw()
 
 
-## 灵狼受到攻击（由妖兽 / Boss 调用）
+## 灵狼受到攻击（由妖兽 / Boss 调用）。临时无敌期间免疫。
 func take_damage(amount: int) -> void:
+	if _invincible_timer > 0.0:
+		return
 	vitals.take_damage(amount)
 
 
-## 死亡回调：通知玩家注销并消失
+## 标记为狼王：放大体型（复用灵狼场景）
+func mark_as_alpha() -> void:
+	is_alpha_wolf = true
+	attack_range += 10.0
+	if _anim != null:
+		_anim.scale *= 1.6
+
+
+## 授予临时无敌（天品「换位无敌」）
+func grant_invincible(duration: float) -> void:
+	_invincible_timer = max(_invincible_timer, duration)
+
+
+## 集火：在指定点附近优先选择目标一段时间（天品「猛兽腾跃·集火」）
+func focus_near(pos: Vector2, duration: float) -> void:
+	_focus_pos = pos
+	_focus_timer = duration
+	var t: Node2D = _find_nearest_enemy()
+	if t != null:
+		_set_target(t)
+		wolf_state = WolfState.CHASE
+
+
+## 死亡回调：通知玩家注销，播放死亡表现后消失
 func _on_died() -> void:
 	print("灵狼死亡")
 	if is_instance_valid(owner_player) and owner_player.has_method("unregister_wolf"):
 		owner_player.unregister_wolf(self)
-	queue_free()
+	_play_death_then_free()
+
+
+## 死亡表现：停止行动 / 碰撞 / 目标性，缩小淡出后再销毁
+func _play_death_then_free() -> void:
+	set_physics_process(false)
+	remove_from_group("ally")
+	var col: Node = get_node_or_null("CollisionShape2D")
+	if col != null:
+		col.set_deferred("disabled", true)
+	if _anim != null:
+		var t := create_tween()
+		t.set_parallel(true)
+		t.tween_property(_anim, "modulate:a", 0.0, 0.2)
+		t.tween_property(_anim, "scale", _anim.scale * 0.6, 0.2)
+		t.chain().tween_callback(queue_free)
+	else:
+		queue_free()
 
 
 ## 由玩家调用，绑定主人
@@ -87,6 +138,11 @@ func _physics_process(delta: float) -> void:
 	# 攻击冷却递减
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
+	# 临时无敌 / 集火计时递减
+	if _invincible_timer > 0.0:
+		_invincible_timer -= delta
+	if _focus_timer > 0.0:
+		_focus_timer -= delta
 
 	# 先更新 AI 状态，再按状态执行行为
 	_update_wolf_state()
@@ -156,25 +212,39 @@ func _update_wolf_state() -> void:
 					wolf_state = WolfState.CHASE
 
 
-## 寻找 detection_range 内最近的存活 "enemy"（过滤空 / 已释放 / 离树 / 死亡）
+## 寻找 detection_range 内的存活 "enemy" 目标。
+## 选取模式：集火（最靠近落点）> 嗜血低血量（血量占比最低）> 默认最近。
 func _find_nearest_enemy() -> Node2D:
-	var nearest: Node2D = null
-	var nearest_distance: float = INF
+	# 嗜血之怒天品：狂热期间优先低血量
+	var prefer_low_hp: bool = is_instance_valid(owner_player) \
+		and owner_player.has_method("is_frenzy_lowhp_targeting") \
+		and owner_player.is_frenzy_lowhp_targeting()
+	# 集火天品：在落点附近优先
+	var focusing: bool = _focus_timer > 0.0
+
+	var best: Node2D = null
+	var best_score: float = INF
 	for enemy in get_tree().get_nodes_in_group("enemy"):
 		if enemy == null or not is_instance_valid(enemy):
 			continue
 		if not enemy is Node2D or not enemy.is_inside_tree():
 			continue
-		# 跳过已死亡敌人
 		var enemy_vitals: Vitals = enemy.get_node_or_null("Vitals") as Vitals
 		if enemy_vitals != null and enemy_vitals.is_dead():
 			continue
 		var distance: float = global_position.distance_to(enemy.global_position)
-		# 只锁定寻敌范围内、且最近的敌人
-		if distance <= detection_range and distance < nearest_distance:
-			nearest_distance = distance
-			nearest = enemy
-	return nearest
+		if distance > detection_range:
+			continue
+		# 计算评分（越小越优先）
+		var score: float = distance
+		if focusing:
+			score = _focus_pos.distance_to((enemy as Node2D).global_position)
+		elif prefer_low_hp and enemy_vitals != null and enemy_vitals.get_max_qi_blood() > 0:
+			score = float(enemy_vitals.get_current_qi_blood()) / float(enemy_vitals.get_max_qi_blood())
+		if score < best_score:
+			best_score = score
+			best = enemy
+	return best
 
 
 ## 锁定目标：连接其 tree_exited，目标离场即清空（避免重复连接）
@@ -271,10 +341,15 @@ func _try_attack(target: Node2D) -> void:
 	if status != null and status.has_method("get_beast_damage_multiplier"):
 		final_damage = int(round(attack_damage * status.get_beast_damage_multiplier()))
 
-	# 调用妖兽的 Vitals 子节点造成伤害
+	# 调用妖兽的 Vitals 子节点造成伤害（标记为召唤物伤害，供反馈着色）
 	var enemy_vitals: Vitals = target.get_node_or_null("Vitals") as Vitals
 	if enemy_vitals != null:
-		enemy_vitals.take_damage(final_damage)
+		var was_alive: bool = not enemy_vitals.is_dead()
+		enemy_vitals.take_damage(final_damage, "summon")
+		# 嗜血之怒：本次攻击造成击杀时通知主人刷新狂热
+		if was_alive and enemy_vitals.is_dead() \
+				and is_instance_valid(owner_player) and owner_player.has_method("on_wolf_kill"):
+			owner_player.on_wolf_kill()
 
 	# 重置冷却：实际冷却 = 基础冷却 / 攻速倍率
 	var effective_cooldown: float = base_attack_cooldown / max(attack_speed_multiplier, 0.01)

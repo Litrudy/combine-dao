@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3 uid="uid://1wml5ru4qfto"]
+[gd_scene load_steps=5 format=3 uid="uid://1wml5ru4qfto"]
 
 [ext_resource type="Script" uid="uid://cpaq8a8j5r7cd" path="res://scenes/ally/spirit_wolf.gd" id="1_wolf"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 [ext_resource type="SpriteFrames" path="res://scenes/ally/spirit_wolf_frames.tres" id="3_frames"]
+[ext_resource type="Script" path="res://scripts/components/unit_feedback.gd" id="4_feedback"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_wolf"]
 size = Vector2(20, 20)
@@ -24,3 +25,10 @@ debug_color = Color(0, 0.8784314, 0.69803923, 0.41960785)
 [node name="Vitals" type="Node" parent="." unique_id=409549418]
 script = ExtResource("2_vitals")
 max_qi_blood = 60
+
+[node name="Feedback" type="Node2D" parent="."]
+script = ExtResource("4_feedback")
+bar_width = 30.0
+bar_height = 4.0
+bar_offset_y = -30.0
+bar_fill_color = Color(0.3, 0.85, 0.6, 1)

@@ -109,17 +109,25 @@ func _physics_process(delta: float) -> void:
 	if _attack_timer > 0.0:
 		_attack_timer -= delta
 
+	# 晕眩（机缘「毒孢爆裂」）：停止移动与攻击
+	if _is_stunned():
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
 	if not is_instance_valid(_player):
 		_acquire_player()
 
 	# 先更新 AI 状态，再按状态执行行为
 	_update_ai_state()
 
+	# 当前实际移速（含沉疴减速等状态影响）
+	var current_speed: float = _current_move_speed()
 	match ai_state:
 		AIState.CHASE:
 			# 追击：朝当前目标移动
 			if is_instance_valid(_current_target):
-				velocity = global_position.direction_to(_current_target.global_position) * move_speed
+				velocity = global_position.direction_to(_current_target.global_position) * current_speed
 			else:
 				velocity = Vector2.ZERO
 		AIState.ATTACK:
@@ -130,7 +138,7 @@ func _physics_process(delta: float) -> void:
 		AIState.RETURN:
 			# 返回出生点
 			if global_position.distance_to(spawn_position) > 20.0:
-				velocity = global_position.direction_to(spawn_position) * move_speed
+				velocity = global_position.direction_to(spawn_position) * current_speed
 			else:
 				velocity = Vector2.ZERO
 		_:
@@ -253,15 +261,47 @@ func _try_attack(target: Node2D) -> void:
 	_attack_timer = attack_cooldown
 
 
+## 是否被晕眩（读取同级 StatusEffects，无则 false）
+func _is_stunned() -> bool:
+	var status: Node = get_node_or_null("StatusEffects")
+	return status != null and status.has_method("is_stunned") and status.is_stunned()
+
+
+## 当前实际移速：基础移速 × 同级 StatusEffects 的移速倍率（沉疴减速等，无则 1.0）
+func _current_move_speed() -> float:
+	var status: Node = get_node_or_null("StatusEffects")
+	if status != null and status.has_method("get_move_speed_multiplier"):
+		return move_speed * status.get_move_speed_multiplier()
+	return move_speed
+
+
 ## 妖兽受到攻击（由剑气等外部来源调用）
 func take_damage(amount: int) -> void:
 	vitals.take_damage(amount)
 
 
-## 气血归零回调：发放修为奖励并消失
+## 气血归零回调：发放修为奖励，播放死亡表现后消失
 func _on_died() -> void:
 	_grant_reward()
-	queue_free()
+	_play_death_then_free()
+
+
+## 死亡表现：停止 AI / 碰撞 / 目标性，缩小淡出后再销毁（短暂反馈，避免瞬间消失）
+func _play_death_then_free() -> void:
+	set_physics_process(false)
+	remove_from_group("enemy")
+	remove_from_group("normal_enemy")
+	var col: Node = get_node_or_null("CollisionShape2D")
+	if col != null:
+		col.set_deferred("disabled", true)
+	if _anim != null:
+		var t := create_tween()
+		t.set_parallel(true)
+		t.tween_property(_anim, "modulate:a", 0.0, 0.2)
+		t.tween_property(_anim, "scale", _anim.scale * 0.6, 0.2)
+		t.chain().tween_callback(queue_free)
+	else:
+		queue_free()
 
 
 ## 发放死亡修为奖励，保证只发放一次

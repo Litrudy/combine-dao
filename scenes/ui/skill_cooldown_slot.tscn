@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://dk57owsqdhe4g"]
+
+[ext_resource type="Script" path="res://scenes/ui/skill_cooldown_slot.gd" id="1_slot"]
+
+[node name="SkillCooldownSlot" type="Control"]
+custom_minimum_size = Vector2(46, 46)
+script = ExtResource("1_slot")
+
+[node name="Icon" type="TextureRect" parent="."]
+texture_filter = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Overlay" type="ColorRect" parent="."]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.55)
+
+[node name="KeyLabel" type="Label" parent="."]
+offset_left = 2.0
+offset_top = 0.0
+offset_right = 22.0
+offset_bottom = 18.0
+theme_override_font_sizes/font_size = 12
+text = "Q"
+
+[node name="CdLabel" type="Label" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_font_sizes/font_size = 16
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1

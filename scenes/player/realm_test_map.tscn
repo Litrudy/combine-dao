@@ -46,6 +46,7 @@ script = ExtResource("5_map")
 
 [node name="Ground" type="Sprite2D" parent="MapRoot"]
 texture_filter = 1
+z_index = -100
 texture_repeat = 2
 texture = ExtResource("16_ground")
 region_enabled = true

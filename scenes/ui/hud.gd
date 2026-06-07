@@ -11,6 +11,19 @@ extends CanvasLayer
 @onready var _skill_slot_label: Label = $Panel/VBoxContainer/SkillSlotLabel
 @onready var _dash_label: Label = $Panel/VBoxContainer/DashLabel
 @onready var _dash_cooldown_bar: ProgressBar = $Panel/VBoxContainer/DashCooldownBar
+@onready var _skill_slot_nodes: Dictionary = {
+	"Q": $Panel/VBoxContainer/SkillCooldownRow/SlotQ,
+	"E": $Panel/VBoxContainer/SkillCooldownRow/SlotE,
+	"F": $Panel/VBoxContainer/SkillCooldownRow/SlotF,
+}
+
+## 技能 id -> 图标路径（48px，构筑/HUD 通用）
+const SKILL_ICON_PATHS: Dictionary = {
+	"summon_wolf": "res://art/icons/skill_summon_wolf_48.png",
+	"poison_mist": "res://art/icons/skill_poison_mist_48.png",
+}
+## 已加载技能图标缓存
+var _skill_icon_cache: Dictionary = {}
 @onready var _realm_enemy_label: Label = $Panel/VBoxContainer/RealmEnemyLabel
 @onready var _realm_event_label: Label = $Panel/VBoxContainer/RealmEventLabel
 @onready var _realm_boss_label: Label = $Panel/VBoxContainer/RealmBossLabel
@@ -27,8 +40,38 @@ func _ready() -> void:
 ## 身法冷却 / 秘境目标持续变化，单独每帧刷新（不重建整个 HUD）
 func _process(_delta: float) -> void:
 	if is_instance_valid(_player) and _player.has_method("get_hud_data"):
-		_update_dash(_player.get_hud_data())
+		var data: Dictionary = _player.get_hud_data()
+		_update_dash(data)
+		_update_skill_cooldowns(data)
 	_update_realm_target()
+
+
+## 刷新 Q/E/F 技能冷却槽（读取玩家冷却快照，仅展示）
+func _update_skill_cooldowns(data: Dictionary) -> void:
+	var cd_data: Dictionary = data.get("skill_slots_cooldown", {})
+	for key in ["Q", "E", "F"]:
+		var slot: Control = _skill_slot_nodes.get(key, null)
+		if slot == null or not slot.has_method("set_data"):
+			continue
+		var entry: Dictionary = cd_data.get(key, {})
+		var skill_id: String = entry.get("skill_id", "")
+		var has_skill: bool = skill_id != ""
+		var cd: Dictionary = entry.get("cooldown", {})
+		var is_ready: bool = cd.get("ready", true)
+		var remaining: float = cd.get("remaining", 0.0)
+		slot.set_data(_get_skill_icon(skill_id), key, is_ready, remaining, has_skill)
+
+
+## 取技能图标：按需 load 并缓存；无配置 / 未导入返回 null
+func _get_skill_icon(skill_id: String) -> Texture2D:
+	if not SKILL_ICON_PATHS.has(skill_id):
+		return null
+	if _skill_icon_cache.has(skill_id):
+		return _skill_icon_cache[skill_id]
+	var path: String = SKILL_ICON_PATHS[skill_id]
+	var tex: Texture2D = load(path) as Texture2D if ResourceLoader.exists(path) else null
+	_skill_icon_cache[skill_id] = tex
+	return tex
 
 
 ## 刷新秘境目标显示（剩余小怪 / 剩余事件 / Boss 状态）
@@ -83,7 +126,11 @@ func _update_dash(data: Dictionary) -> void:
 		return
 	var progress: float = data.get("dash_cooldown_progress", 1.0)
 	_dash_cooldown_bar.value = progress * 100.0
+	# 多段冲刺时附带显示当前/最大次数
+	var charges: int = int(data.get("dash_charges", 1))
+	var charge_max: int = int(data.get("dash_charge_max", 1))
+	var charge_suffix: String = "（%d/%d）" % [charges, charge_max] if charge_max > 1 else ""
 	if data.get("dash_ready", true):
-		_dash_label.text = "身法：可用"
+		_dash_label.text = "身法：可用%s" % charge_suffix
 	else:
-		_dash_label.text = "身法：冷却中 %.1f 秒" % data.get("dash_cooldown_timer", 0.0)
+		_dash_label.text = "身法：冷却中 %.1f 秒%s" % [data.get("dash_cooldown_timer", 0.0), charge_suffix]

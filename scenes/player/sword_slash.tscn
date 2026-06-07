@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://dxdehe07kak4g"]
+
+[ext_resource type="Script" path="res://scenes/player/melee_hitbox.gd" id="1_slash"]
+[ext_resource type="SpriteFrames" path="res://scenes/player/sword_slash_frames.tres" id="2_slash_frames"]
+
+[node name="SwordSlash" type="Area2D"]
+script = ExtResource("1_slash")
+
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="."]
+polygon = PackedVector2Array(0, 0, 90, -78, 116, -42, 124, 0, 116, 42, 90, 78)
+
+[node name="Visual" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+position = Vector2(55, 0)
+scale = Vector2(0.75, 0.75)
+sprite_frames = ExtResource("2_slash_frames")
+animation = &"slash"
+autoplay = "slash"

@@ -8,6 +8,7 @@
 size = Vector2(32, 32)
 
 [node name="Cultivator" type="CharacterBody2D" unique_id=655860919 groups=["player"]]
+z_index = 10
 script = ExtResource("1_47jo8")
 
 [node name="AnimatedSprite" type="AnimatedSprite2D" parent="." unique_id=2016236952]

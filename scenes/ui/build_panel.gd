@@ -26,7 +26,9 @@ const DEFAULT_COLOR: String = "#FFFFFF"
 ## 基础攻击图标路径（剑气 / 毒镖 / 驭兽鞭）
 ## 用运行时 load 而非 preload：避免素材未导入时整脚本解析失败；缺图则回退为无图标
 const ATTACK_ICON_PATHS: Dictionary = {
+	"spirit_impact": "res://art/icons/attack_spirit_impact_32.png",
 	"sword_qi": "res://art/icons/attack_sword_qi_32.png",
+	"sword_slash": "res://art/icons/attack_sword_slash_32.png",
 	"poison_dart": "res://art/icons/attack_poison_dart_32.png",
 	"beast_whip": "res://art/icons/attack_beast_whip_32.png",
 }
@@ -196,8 +198,14 @@ func show_overview_module() -> void:
 	_add_heading("战斗数值预览")
 	_add_text("剑气伤害：%d" % preview.get("sword_damage", 0))
 	_add_text("毒伤基础：%d" % preview.get("poison_damage", 0))
-	_add_text("灵狼血量：%d" % preview.get("wolf_max_hp", 0))
-	_add_text("灵狼攻击：%d" % preview.get("wolf_damage", 0))
+	# 狼王模式：显示狼王属性；否则显示普通灵狼属性
+	if preview.get("alpha_wolf_enabled", false):
+		_add_text("【狼王模式】强化层数：%d" % preview.get("alpha_wolf_layers", 0), Color(1.0, 0.8, 0.3))
+		_add_text("狼王血量：%d" % preview.get("alpha_wolf_hp", 0))
+		_add_text("狼王攻击：%d" % preview.get("alpha_wolf_damage", 0))
+	else:
+		_add_text("灵狼血量：%d" % preview.get("wolf_max_hp", 0))
+		_add_text("灵狼攻击：%d" % preview.get("wolf_damage", 0))
 	_add_text("驭兽鞭伤害：%d" % preview.get("beast_whip_damage", 0))
 
 	_add_heading("当前基础攻击")
@@ -224,8 +232,8 @@ func show_primary_attack_module() -> void:
 
 	_add_heading("已解锁基础攻击")
 	var unlocked: Array = data["unlocked_primary_attacks"]
-	# 固定展示三种基础攻击：未解锁的按钮置灰不可点击
-	for attack_id in ["sword_qi", "poison_dart", "beast_whip"]:
+	# 固定展示全部基础攻击：未解锁的按钮置灰不可点击
+	for attack_id in ["spirit_impact", "sword_qi", "sword_slash", "poison_dart", "beast_whip"]:
 		var is_unlocked: bool = attack_id in unlocked
 		var button := Button.new()
 		var label: String = _player.get_primary_attack_display_name(attack_id)
@@ -334,6 +342,11 @@ func show_boon_module() -> void:
 		var desc: String = record.get("description", "")
 		if desc != "":
 			_add_text("描述：%s" % desc)
+		# 天品机缘附带天品附属能力说明
+		if record.get("grade_id", "fan") == "tian":
+			var tian_desc: String = record.get("tian_description", "")
+			if tian_desc != "":
+				_add_text("天品：%s" % tian_desc, Color(1.0, 0.5, 0.5))
 
 
 ## 机缘记录显示：【品阶】名 星级
@@ -346,6 +359,13 @@ func _format_record(record: Dictionary) -> String:
 		result = "【%s】%s" % [grade_name, boon_name]
 	if star_text != "":
 		result += " " + star_text
+	# 追加 当前/最大 星级，满星标 MAX
+	var star: int = int(record.get("star", record.get("stars", 1)))
+	var max_star: int = int(record.get("max_star", 5))
+	if star >= max_star:
+		result += " (MAX)"
+	else:
+		result += " (%d/%d)" % [star, max_star]
 	return result
 
 

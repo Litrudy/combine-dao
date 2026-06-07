@@ -7,13 +7,16 @@ extends Area2D
 @export var damage: int = 5
 ## 存活时间（秒），短暂存在后消失
 @export var life_time: float = 0.15
-## 驭兽标记持续时间
-@export var beast_mark_duration: float = 4.0
-## 驭兽标记伤害倍率
-@export var beast_mark_multiplier: float = 1.3
+## 驭兽标记持续时间（固定 5 秒）
+@export var beast_mark_duration: float = 5.0
+## 驭兽标记伤害倍率（被标记敌人受召唤物伤害 +25%）
+@export var beast_mark_multiplier: float = 1.25
 
 ## 朝向（由玩家释放时传入，需为单位向量）
 var direction: Vector2 = Vector2.RIGHT
+
+## 天品「标记转移」：被标记目标死亡时标记转移给最近敌人（由玩家释放时传入）
+var beast_mark_transfer: bool = false
 
 ## 本次挥鞭已命中过的目标，避免重复造成伤害
 var _hit_targets: Array = []
@@ -61,7 +64,7 @@ func _try_hit(target: Node) -> void:
 	if enemy_vitals != null and not enemy_vitals.is_dead():
 		enemy_vitals.take_damage(damage)
 
-	# 添加驭兽标记
+	# 添加驭兽标记（天品时附带「死亡转移」标志）
 	var status: Node = target.get_node_or_null("StatusEffects")
 	if status != null and status.has_method("apply_beast_mark"):
-		status.apply_beast_mark(beast_mark_duration, beast_mark_multiplier)
+		status.apply_beast_mark(beast_mark_duration, beast_mark_multiplier, beast_mark_transfer)

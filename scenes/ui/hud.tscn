@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://c0hud00000001"]
+[gd_scene load_steps=4 format=3 uid="uid://c0hud00000001"]
 
 [ext_resource type="Script" path="res://scenes/ui/hud.gd" id="1_hud"]
 [ext_resource type="Texture2D" path="res://art/items/heavenly_stone_48.png" id="2_stone_icon"]
+[ext_resource type="PackedScene" path="res://scenes/ui/skill_cooldown_slot.tscn" id="3_cdslot"]
 
 [node name="HUD" type="CanvasLayer"]
 layer = 5
@@ -64,6 +65,19 @@ text = "基础攻击：剑气"
 [node name="SkillSlotLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2
 text = "Q：空  E：空  F：空"
+
+[node name="SkillCooldownRow" type="HBoxContainer" parent="Panel/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="SlotQ" parent="Panel/VBoxContainer/SkillCooldownRow" instance=ExtResource("3_cdslot")]
+layout_mode = 2
+
+[node name="SlotE" parent="Panel/VBoxContainer/SkillCooldownRow" instance=ExtResource("3_cdslot")]
+layout_mode = 2
+
+[node name="SlotF" parent="Panel/VBoxContainer/SkillCooldownRow" instance=ExtResource("3_cdslot")]
+layout_mode = 2
 
 [node name="DashLabel" type="Label" parent="Panel/VBoxContainer"]
 layout_mode = 2

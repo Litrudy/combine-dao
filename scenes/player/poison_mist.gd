@@ -1,32 +1,46 @@
 extends Area2D
-## 毒雾（毒蛊流区域伤害）
-## M1 任务 7D —— 在范围内对妖兽按 tick 周期结算毒伤。
-## 仅做区域内结算，不做复杂 DOT 状态系统。
+## 毒雾（毒蛊流区域控制）
+## 在范围内对妖兽施加 / 刷新「中毒」状态（统一由 StatusEffects 结算 DOT）。
+## 毒雾自身不再直接造成伤害，避免与中毒 DOT 重复计算。
 
-## 每次结算的基础毒伤
-@export var damage_per_second: int = 3
 ## 毒雾持续时间（秒）
 @export var duration: float = 4.0
-## 结算间隔（秒）
+## 施加间隔（秒）：每隔此时间为范围内妖兽叠加 / 刷新一次中毒
 @export var tick_interval: float = 1.0
-## 是否启用叠毒
-@export var poison_stack_enabled: bool = false
-## 叠毒最大层数
-@export var max_poison_stack: int = 1
-## 是否启用毒爆
-@export var poison_explosion_enabled: bool = false
 
+## 中毒来源（施加者）的毒灵根，传给 StatusEffects 计算每跳毒伤
+var source_poison_root: int = 0
+## 中毒每跳额外固定毒伤（毒蛊机缘加成）
+var poison_bonus_per_tick: int = 0
+## 中毒第一层比例加成（机缘「毒性强化」）
+var poison_ratio_bonus: float = 0.0
+
+## 是否启用毒爆
+var poison_explosion_enabled: bool = false
 ## 毒爆范围（像素，可由玩家释放时传入，含专精加成）
-@export var explosion_radius: float = 120.0
+var explosion_radius: float = 120.0
 ## 毒爆对其他妖兽造成的毒伤（可由玩家释放时传入，含专精加成）
-@export var explosion_damage: int = 8
+var explosion_damage: int = 8
 
 ## 存活计时（剩余持续时间）
 var _life_timer: float = 0.0
-## 距离下次结算的剩余时间
+## 距离下次施加的剩余时间
 var _tick_timer: float = 0.0
-## 每只妖兽的当前毒层数 { enemy:Node -> stack:int }
-var _poison_stacks: Dictionary = {}
+
+## 毒蛊联动：减速（沉疴）/ 蛊咒配置，随中毒下发到目标 StatusEffects
+var poison_slow_enabled: bool = false
+var poison_slow_multiplier: float = 1.0
+var poison_curse_enabled: bool = false
+var poison_curse_multiplier: float = 1.0
+## 天品「毒爆余烬」：毒爆后留小毒云
+var poison_spore_enabled: bool = false
+## 机缘「毒孢爆裂」：毒爆附加晕眩
+var poison_spore_stun_enabled: bool = false
+var poison_spore_stun_duration: float = 0.0
+## 天品「蛊咒传播」：诅咒目标死亡向附近传毒
+var poison_curse_spread_enabled: bool = false
+## 中毒 DOT 持续时间（含毒灵根精通天品；0 表示用默认）
+var poison_dot_duration: float = 0.0
 
 ## 毒雾范围加成（机缘「毒域扩张」，由玩家释放时传入）
 var radius_bonus: int = 0
@@ -36,7 +50,7 @@ const BASE_RADIUS: float = 80.0
 
 func _ready() -> void:
 	_life_timer = duration
-	# 第一次结算等待一个 tick_interval
+	# 第一次施加等待一个 tick_interval
 	_tick_timer = tick_interval
 	# 根据范围加成缩放碰撞体与视觉（影响 get_overlapping_bodies 的检测范围）
 	if radius_bonus != 0:
@@ -52,57 +66,36 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 
-	# 按 tick_interval 周期结算，不每帧伤害
+	# 按 tick_interval 周期为范围内妖兽施加 / 刷新中毒
 	_tick_timer -= delta
 	if _tick_timer <= 0.0:
 		_tick_timer = tick_interval
 		_apply_poison_tick()
 
 
-## 对范围内所有妖兽结算一次毒伤
+## 对范围内所有妖兽施加 / 刷新一次中毒（DOT 由各自 StatusEffects 结算）
 func _apply_poison_tick() -> void:
 	for body in get_overlapping_bodies():
-		if body.is_in_group("enemy"):
-			_poison_one(body)
-
-
-## 对单只妖兽结算毒伤（含叠毒与毒爆判定）
-func _poison_one(enemy: Node) -> void:
-	var enemy_vitals: Vitals = enemy.get_node_or_null("Vitals") as Vitals
-	# 妖兽无气血组件或已死亡则跳过
-	if enemy_vitals == null or enemy_vitals.is_dead():
-		return
-
-	# 计算本次毒伤
-	var damage: int = damage_per_second
-	if poison_stack_enabled:
-		# 叠毒：每次结算层数 +1，封顶 max_poison_stack；毒伤 = 基础毒伤 * 层数
-		var stack: int = _poison_stacks.get(enemy, 0)
-		stack = min(stack + 1, max_poison_stack)
-		_poison_stacks[enemy] = stack
-		damage = damage_per_second * stack
-
-	# 记录受伤前是否存活，用于判断本次是否毒死
-	var was_alive: bool = not enemy_vitals.is_dead()
-	enemy_vitals.take_damage(damage)
-
-	# 毒爆：本次结算导致妖兽死亡时触发（每只只会触发一次）
-	if poison_explosion_enabled and was_alive and enemy_vitals.is_dead():
-		_trigger_explosion(enemy)
-
-
-## 毒爆：对死亡妖兽周围其他妖兽扩散毒伤
-func _trigger_explosion(source_enemy: Node) -> void:
-	print("毒爆触发")
-	var source_pos: Vector2 = (source_enemy as Node2D).global_position
-	for enemy in get_tree().get_nodes_in_group("enemy"):
-		# 跳过毒爆源、无效节点和非 2D 节点
-		if enemy == source_enemy or not is_instance_valid(enemy) or not enemy is Node2D:
+		if not body.is_in_group("enemy"):
 			continue
-		# 仅影响毒爆范围内的妖兽
-		if source_pos.distance_to((enemy as Node2D).global_position) > explosion_radius:
+		var status: Node = body.get_node_or_null("StatusEffects")
+		if status == null or not status.has_method("apply_poison"):
 			continue
-		var enemy_vitals: Vitals = enemy.get_node_or_null("Vitals") as Vitals
-		# 直接造成毒伤，不再二次引爆，避免连锁递归
-		if enemy_vitals != null and not enemy_vitals.is_dead():
-			enemy_vitals.take_damage(explosion_damage)
+		# 施加 / 叠加中毒（来源毒灵根 = 施加者；附带毒蛊机缘固定加成与可选时长）
+		var dur: float = poison_dot_duration if poison_dot_duration > 0.0 else 5.0
+		status.apply_poison(source_poison_root, poison_bonus_per_tick, poison_ratio_bonus, dur)
+		# 配置毒爆（中毒目标死亡时由 StatusEffects 触发）
+		if status.has_method("configure_poison_explosion"):
+			status.configure_poison_explosion(poison_explosion_enabled, explosion_radius, explosion_damage)
+		# 配置沉疴减速 / 蛊咒承伤（无对应机缘时为默认 1.0，等价于不生效）
+		if status.has_method("configure_poison_slow"):
+			status.configure_poison_slow(poison_slow_enabled, poison_slow_multiplier)
+		if status.has_method("configure_poison_curse"):
+			status.configure_poison_curse(poison_curse_enabled, poison_curse_multiplier)
+		# 配置毒爆余烬（天品）/ 毒孢晕眩 / 蛊咒传播
+		if status.has_method("configure_poison_spore"):
+			status.configure_poison_spore(poison_spore_enabled)
+		if status.has_method("configure_poison_spore_stun"):
+			status.configure_poison_spore_stun(poison_spore_stun_enabled, poison_spore_stun_duration)
+		if status.has_method("configure_poison_curse_spread"):
+			status.configure_poison_curse_spread(poison_curse_spread_enabled)

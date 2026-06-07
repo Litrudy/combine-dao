@@ -1,23 +1,7 @@
-[gd_resource type="SpriteFrames" load_steps=11 format=3]
+[gd_resource type="SpriteFrames" format=3 uid="uid://cy4gk7pl1ykbh"]
 
-[ext_resource type="Texture2D" path="res://art/ally/spirit_wolf_walk.png" id="1"]
-[ext_resource type="Texture2D" path="res://art/ally/spirit_wolf_attack.png" id="2"]
-
-[sub_resource type="AtlasTexture" id="w0"]
-atlas = ExtResource("1")
-region = Rect2(0, 0, 128, 128)
-
-[sub_resource type="AtlasTexture" id="w1"]
-atlas = ExtResource("1")
-region = Rect2(128, 0, 128, 128)
-
-[sub_resource type="AtlasTexture" id="w2"]
-atlas = ExtResource("1")
-region = Rect2(256, 0, 128, 128)
-
-[sub_resource type="AtlasTexture" id="w3"]
-atlas = ExtResource("1")
-region = Rect2(384, 0, 128, 128)
+[ext_resource type="Texture2D" uid="uid://t2hx8bgg0sq" path="res://art/ally/spirit_wolf_walk.png" id="1"]
+[ext_resource type="Texture2D" uid="uid://bofpp240kvbb2" path="res://art/ally/spirit_wolf_attack.png" id="2"]
 
 [sub_resource type="AtlasTexture" id="a0"]
 atlas = ExtResource("2")
@@ -34,6 +18,22 @@ region = Rect2(320, 0, 160, 128)
 [sub_resource type="AtlasTexture" id="a3"]
 atlas = ExtResource("2")
 region = Rect2(480, 0, 160, 128)
+
+[sub_resource type="AtlasTexture" id="w0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="w1"]
+atlas = ExtResource("1")
+region = Rect2(128, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="w2"]
+atlas = ExtResource("1")
+region = Rect2(256, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="w3"]
+atlas = ExtResource("1")
+region = Rect2(384, 0, 128, 128)
 
 [resource]
 animations = [{

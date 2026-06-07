@@ -104,6 +104,12 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
+	# 晕眩（毒孢爆裂；Boss 仅吃 30% 时长）：暂停移动与技能
+	if _is_stunned():
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
+
 	# 残血狂暴检测
 	_check_berserk()
 
@@ -119,6 +125,12 @@ func _physics_process(delta: float) -> void:
 		_anim.flip_h = velocity.x > 0.0
 
 	move_and_slide()
+
+
+## 是否被晕眩（读取同级 StatusEffects，无则 false）
+func _is_stunned() -> bool:
+	var status: Node = get_node_or_null("StatusEffects")
+	return status != null and status.has_method("is_stunned") and status.is_stunned()
 
 
 ## 从 "player" 组获取玩家
@@ -240,7 +252,25 @@ func _on_died() -> void:
 		player.gain_heavenly_stones(amount)
 		print("守墟妖王掉落天道石：", amount)
 	print("守墟妖王已被击败")
-	queue_free()
+	_play_death_then_free()
+
+
+## 死亡表现：停止追击 / 碰撞 / 目标性，缩小淡出后再销毁
+func _play_death_then_free() -> void:
+	set_physics_process(false)
+	remove_from_group("enemy")
+	remove_from_group("boss")
+	var col: Node = get_node_or_null("CollisionShape2D")
+	if col != null:
+		col.set_deferred("disabled", true)
+	if _anim != null:
+		var t := create_tween()
+		t.set_parallel(true)
+		t.tween_property(_anim, "modulate:a", 0.0, 0.3)
+		t.tween_property(_anim, "scale", _anim.scale * 0.6, 0.3)
+		t.chain().tween_callback(queue_free)
+	else:
+		queue_free()
 
 
 ## 调试：绘制警戒范围圈

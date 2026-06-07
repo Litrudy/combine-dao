@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://b53vwoepd3csi"]
+[gd_scene load_steps=6 format=3 uid="uid://b53vwoepd3csi"]
 
 [ext_resource type="Script" path="res://scenes/enemy/boss_guardian.gd" id="1_boss"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 [ext_resource type="Script" path="res://scripts/components/status_effects.gd" id="3_status"]
 [ext_resource type="SpriteFrames" path="res://scenes/enemy/boss_guardian_frames.tres" id="4_frames"]
+[ext_resource type="Script" path="res://scripts/components/unit_feedback.gd" id="5_feedback"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_boss"]
 size = Vector2(48, 48)
@@ -27,3 +28,10 @@ max_qi_blood = 300
 
 [node name="StatusEffects" type="Node" parent="."]
 script = ExtResource("3_status")
+
+[node name="Feedback" type="Node2D" parent="."]
+script = ExtResource("5_feedback")
+bar_width = 84.0
+bar_height = 7.0
+bar_offset_y = -72.0
+bar_fill_color = Color(0.9, 0.3, 0.2, 1)

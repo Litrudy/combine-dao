@@ -1,0 +1,39 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://art/effects/spirit_impact.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="s0"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 192, 128)
+
+[sub_resource type="AtlasTexture" id="s1"]
+atlas = ExtResource("1")
+region = Rect2(192, 0, 192, 128)
+
+[sub_resource type="AtlasTexture" id="s2"]
+atlas = ExtResource("1")
+region = Rect2(384, 0, 192, 128)
+
+[sub_resource type="AtlasTexture" id="s3"]
+atlas = ExtResource("1")
+region = Rect2(576, 0, 192, 128)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("s0")
+}, {
+"duration": 1.0,
+"texture": SubResource("s1")
+}, {
+"duration": 1.0,
+"texture": SubResource("s2")
+}, {
+"duration": 1.0,
+"texture": SubResource("s3")
+}],
+"loop": false,
+"name": &"impact",
+"speed": 30.0
+}]

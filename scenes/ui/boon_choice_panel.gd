@@ -49,6 +49,7 @@ const ATTACK_NAMES: Dictionary = {
 const UNLOCK_EFFECT_TYPES: Array[String] = [
 	"summon_wolf", "poison_mist", "poison_stack", "poison_explosion",
 	"sword_execute", "beast_guard", "extra_wolf", "replace_primary_attack",
+	"replace_dash", "dash_count", "sword_chain",
 ]
 
 
@@ -143,12 +144,17 @@ func _setup_button(button: Button, boon: Dictionary) -> void:
 	var star_text: String = boon.get("star_text", "")
 	var description: String = boon.get("description", "")
 
-	# 第一行：【品阶】机缘名 星级
+	# 第一行：【品阶】机缘名 星级 (当前/最大)，升级项加前缀
+	var star: int = int(boon.get("star", 1))
+	var max_star: int = int(boon.get("max_star", 5))
 	var title_line: String = boon_name
 	if grade_name != "":
 		title_line = "【%s】%s" % [grade_name, boon_name]
 	if star_text != "":
 		title_line += " " + star_text
+	title_line += " (%d/%d)" % [star, max_star]
+	if boon.get("is_upgrade", false):
+		title_line = "↑升级 " + title_line
 
 	# 流派行：剑气 / 御兽 / 毒蛊
 	var school_text: String = _school_text(boon.get("school_tags", []))
@@ -159,10 +165,18 @@ func _setup_button(button: Button, boon: Dictionary) -> void:
 	if not _is_unlock_boon(boon):
 		var base_value = boon.get("effect_value", null)
 		var final_value = boon.get("final_effect_value", null)
-		if final_value != null and (base_value is int or base_value is float):
+		# 仅数值类显示“基础 → 最终”；复合数值（effect_values 字典）不在此展示
+		if (base_value is int or base_value is float) and (final_value is int or final_value is float):
 			effect_line = "\n效果：%s → %s" % [str(base_value), str(final_value)]
 
-	button.text = "%s%s%s\n描述：%s" % [title_line, school_line, effect_line, description]
+	# 天品附属能力行：仅当该候选为天品且有 tian_description 时显示
+	var tian_line: String = ""
+	if boon.get("grade_id", "fan") == "tian":
+		var tian_desc: String = boon.get("tian_description", "")
+		if tian_desc != "":
+			tian_line = "\n天品：%s" % tian_desc
+
+	button.text = "%s%s%s\n描述：%s%s" % [title_line, school_line, effect_line, description, tian_line]
 
 	# 按钮文字颜色使用品阶颜色（缺失时用白色）
 	var color_hex: String = boon.get("grade_color", "#FFFFFF")

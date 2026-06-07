@@ -6,7 +6,11 @@
       "Bash(python -)",
       "Bash(command -v godot)",
       "Bash(godot --version)",
-      "Bash(echo \"godot found: $\\(godot --version\\)\")"
+      "Bash(echo \"godot found: $\\(godot --version\\)\")",
+      "Bash(cd e:/project/combine-dao)",
+      "Bash(ls art/icons/)",
+      "Bash(ls art/effects/)",
+      "Bash(ls art/projectiles/)"
     ]
   }
 }

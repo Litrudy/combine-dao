@@ -1,30 +1,31 @@
-[gd_scene load_steps=5 format=3 uid="uid://g63u0puxto42"]
+[gd_scene format=3 uid="uid://g63u0puxto42"]
 
-[ext_resource type="Script" path="res://scenes/events/beast_bone_altar.gd" id="1_altar"]
-[ext_resource type="Texture2D" path="res://art/events/beast_bone_altar.png" id="2_altar_tex"]
+[ext_resource type="Script" uid="uid://cgdbtjfxmsq1g" path="res://scenes/events/beast_bone_altar.gd" id="1_altar"]
+[ext_resource type="Texture2D" uid="uid://c5bgt2gvjbyql" path="res://art/events/beast_bone_altar.png" id="2_altar_tex"]
 
-[sub_resource type="RectangleShape2D" id="range"]
-size = Vector2(125, 100)
+[sub_resource type="CircleShape2D" id="range"]
+radius = 76.03
 
 [sub_resource type="RectangleShape2D" id="block"]
 size = Vector2(95, 62)
 
-[node name="BeastBoneAltar" type="Area2D" groups=["realm_event"]]
+[node name="BeastBoneAltar" type="Area2D" unique_id=1577199715 groups=["realm_event"]]
 script = ExtResource("1_altar")
 event_id = "beast_bone_altar"
 event_name = "兽骨祭坛"
 description = "祭坛上堆满妖兽骸骨。献上一缕灵气后，将引来一只强大的精英妖兽。"
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1324543080]
+position = Vector2(-2, 15)
 shape = SubResource("range")
 
-[node name="Blocker" type="StaticBody2D" parent="."]
+[node name="Blocker" type="StaticBody2D" parent="." unique_id=854069262]
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Blocker" unique_id=1071806929]
 shape = SubResource("block")
 
-[node name="Visual" type="Sprite2D" parent="."]
+[node name="Visual" type="Sprite2D" parent="." unique_id=1271218302]
 texture_filter = 1
+z_index = -20
 texture = ExtResource("2_altar_tex")
 hframes = 2
-frame = 0

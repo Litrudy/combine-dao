@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3 uid="uid://no6vpd7vpph5"]
+[gd_scene load_steps=6 format=3 uid="uid://no6vpd7vpph5"]
 
 [ext_resource type="Script" uid="uid://bv34p5uvt6tws" path="res://scenes/enemy/beast.gd" id="1_s6uuk"]
 [ext_resource type="Script" uid="uid://cobprtlxk1ehu" path="res://scripts/components/vitals.gd" id="2_vitals"]
 [ext_resource type="Script" path="res://scripts/components/status_effects.gd" id="3_status"]
 [ext_resource type="SpriteFrames" path="res://scenes/enemy/beast_frames.tres" id="4_frames"]
+[ext_resource type="Script" path="res://scripts/components/unit_feedback.gd" id="5_feedback"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5m1xp"]
 size = Vector2(28, 28)
@@ -28,3 +29,7 @@ max_qi_blood = 60
 
 [node name="StatusEffects" type="Node" parent="." unique_id=158629326]
 script = ExtResource("3_status")
+
+[node name="Feedback" type="Node2D" parent="."]
+script = ExtResource("5_feedback")
+bar_offset_y = -38.0

@@ -25,6 +25,7 @@ shape = SubResource("block")
 
 [node name="Visual" type="Sprite2D" parent="."]
 texture_filter = 1
+z_index = -20
 texture = ExtResource("2_spring_tex")
 hframes = 2
 frame = 0
